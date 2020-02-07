@@ -1,0 +1,13 @@
+.config/LocalNAVSettings.xml
+.config/LocalNAVSettings.json
+.vscode/
+lib/src/.vs
+lib/src/SplitNavObjects/SplitNavObjects/bin
+lib/src/SplitNavObjects/SplitNavObjects/obj
+lib/src/SplitNavObjects/SplitNavObjects/.vs/*
+lib/src/COMNavConnector/.vs
+lib/src/COMNavConnector/bin
+lib/src/COMNavConnector/obj
+lib/src/CustomCOMNavConnector/CustomCOMNavConnector/.vs
+lib/src/CustomCOMNavConnector/CustomCOMNavConnector/bin
+lib/src/CustomCOMNavConnector/CustomCOMNavConnector/obj
