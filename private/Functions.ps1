@@ -6,10 +6,22 @@
         $customFilter
     )
     $GitRepo = (Join-Path -Path (Get-Item $config.$($config.active).GitPath) -ChildPath "").Trim("\")
+
+    $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+    . $CultureConverter
     $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
     
 
     $databaseName = $config.$($config.active).DatabaseName
+
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
+        $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
+        $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
+    }
+    else {
+        $SystemCulture = Get-Culture
+        $RepoCulture = $SystemCulture.LCID
+    }
 
     
     if (!(Test-Path $TempRepo)) {
@@ -54,6 +66,10 @@
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
         Split-Objects -TempRepo $TempRepo -types $objectTypes
 
+        if (Is-LanguageDifferent -valueCulture $RepoCulture) {
+            Convert-Culture -config $config -repoCulture $RepoCulture -objectTypes $objectTypes
+        }
+
         if (-Not ($skipRobocopy)) {
             if ($useCustomFilter) {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Copying Content of Temp to Git-Repo" -ForegroundColor Cyan
@@ -94,7 +110,7 @@ function Show-ChangesInApplication {
     $file2 = Join-Path -Path $gitPath -ChildPath $filename
     $file = $CompareToolPath
     if (Test-Path $file) {
-        $argumentlist = $CompareToolParam.Replace("%1","""$file1""").Replace("%2","""$file2""")
+        $argumentlist = $CompareToolParam.Replace("%1", """$file1""").Replace("%2", """$file2""")
         Start-Process -FilePath $file -ArgumentList $argumentlist
     }
     else {
@@ -112,17 +128,28 @@ function Start-Export {
         [switch]$skipRobocopy
     )
 
+    $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+    . $CultureConverter
+
     $GitRepo = (Join-Path -Path (Get-Item $config.$($config.active).GitPath) -ChildPath "").trim("\")
     $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
     $finsqlPath = Join-Path -Path $config.$($config.active).RTCpath -ChildPath "finsql.exe"
     $sqlServername = $config.$($config.active).SQLServerName
     $databaseName = $config.$($config.active).DatabaseName
 
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
+        $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
+        $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
+    }
+    else {
+        $SystemCulture = Get-Culture
+        $RepoCulture = $SystemCulture.LCID
+    }
     
     if (!(Test-Path $TempRepo)) {
         Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating tempfolder " + $TempRepo) -ForegroundColor Cyan
         mkdir $TempRepo > $null
-    } 
+    }
     else {
         Write-Host("$(Get-Date -Format "HH:mm:ss") | Cleaning tempfolder " + $TempRepo) -ForegroundColor Cyan
         Remove-Item -Path (Join-Path -Path $TempRepo -ChildPath "*") -Recurse
@@ -169,6 +196,10 @@ function Start-Export {
 
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
     Split-Objects -TempRepo $TempRepo -types $objectTypes
+    
+    if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+        Convert-Culture -config $config -repoCulture $RepoCulture -objectTypes $objectTypes
+    }
 
     if (-Not ($skipRobocopy)) {
         if ($useCustomFilter) {
@@ -325,7 +356,7 @@ function Copy-Robocopy {
         $TempRepo
     )
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Moving files to Git-Repository " + $GitRepo) -ForegroundColor Cyan
-    Robocopy $TempRepo $GitRepo /mov /mir /xf ".gitattributes" "navcommandresult.txt" "*.zup" /xd ".git" > $null
+    Robocopy $TempRepo $GitRepo /mov /mir /xf "*.json" ".gitattributes" "navcommandresult.txt" "*.zup" /xd ".git" > $null
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $TempRepo) -ForegroundColor Cyan
     Remove-Item -Recurse -Path $TempRepo
 }
@@ -385,6 +416,18 @@ function Set-Nav-Changes {
     $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
     $finzup = Join-Path($TempRepo) "$databaseName.zup"
 
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
+        $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
+        $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
+    }
+    else {
+        $SystemCulture = Get-Culture
+        $RepoCulture = $SystemCulture.LCID
+    }
+
+    $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+    . $CultureConverter
+
     if ($nav6) {
         Import-Module (Join-Path -Path ((Get-Item $PSScriptRoot).Parent.FullName) -ChildPath "lib/COMNavConnector.dll") 
     }
@@ -392,7 +435,7 @@ function Set-Nav-Changes {
     $listlength = $list.Count
 
     $count = 1
-    for($i = 0; $i -lt $list.Count; $i++){
+    for ($i = 0; $i -lt $list.Count; $i++) {
         $item = $list[$i]
         $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
         [string]$filename = Split-Path -Path $path -leaf
@@ -421,18 +464,24 @@ function Set-Nav-Changes {
                 if (Test-Path $log) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Error while trying to delete $type ${id}:" -ForegroundColor Red
                     Write-Host (Get-Content($log)) -ForegroundColor White
-                }else{
+                }
+                else {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Deleted $type $id" -ForegroundColor Red
                     $list.RemoveAt($i) > $null
                     $i--
                 }
             }
         }
-        else {            
+        else {
+            if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+                Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
+                $path = Join-Path -Path $TempRepo -ChildPath $item
+            }
             if ($nav6) {
                 if ((Set-NavisionObjectText -DatabaseName $databaseName -FilePath $path) -eq 0) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Imported $type $id" -ForegroundColor Green
-                }else{
+                }
+                else {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Error while trying to Import $type ${id}." -ForegroundColor Red
                     $list.RemoveAt($i) > $null
                     $i--
@@ -452,7 +501,8 @@ function Set-Nav-Changes {
                     Write-Host (Get-Content($log)) -ForegroundColor White
                     $list.RemoveAt($i) > $null
                     $i--
-                }else{
+                }
+                else {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Imported $type $id" -ForegroundColor Green
                 }
             }            
@@ -480,7 +530,7 @@ function Set-ObjectsCompiled {
     $listlength = $selectedObjectsList.Count
     if ($null -eq $credential) {
         foreach ($item in $selectedObjectsList) {
-            if(Test-Path $log){
+            if (Test-Path $log) {
                 Remove-Item $log
             }
             $count++
@@ -493,7 +543,8 @@ function Set-ObjectsCompiled {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Error while trying to compile $filtertype ${filterId}:" -ForegroundColor Red
                 Write-Host (Get-Content($log)) -ForegroundColor White
                 continue
-            }else{
+            }
+            else {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Successfully compiled $filtertype $filterId." -ForegroundColor Green
             }
         }          
@@ -512,7 +563,8 @@ function Set-ObjectsCompiled {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Error while trying to compile $filtertype ${filterId}:" -ForegroundColor Red
                 Write-Host (Get-Content($log)) -ForegroundColor White
                 continue
-            }else{
+            }
+            else {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Successfully compiled $filtertype $filterId." -ForegroundColor Green
             }
         }          
@@ -642,3 +694,57 @@ function Convert-CustomStringToNewNavFilters {
     }
     return $dictionary
 }
+
+$CallConverter = {
+    param (
+        $type,
+        $repoCulture,
+        $TempRepo,
+        $CultureConverter
+    )    
+    . $CultureConverter
+
+    $folder = Get-ChildItem (Join-Path -Path $TempRepo -ChildPath $type)
+    foreach ($object in $folder) {
+        $contentPath = (Join-Path -Path $TempRepo -ChildPath "$type\$object")
+        $content = [System.IO.File]::ReadAllText($contentPath, [System.Text.Encoding]::GetEncoding(850))
+        [System.IO.File]::WriteAllText($contentPath, (Convert-TextLanguage -languageId $repoCulture -content $content -toNavision $false), [System.Text.Encoding]::GetEncoding(850))
+    }
+}
+
+function Convert-Culture {
+    param(
+        $config,
+        $repoCulture,
+        $objectTypes
+    )
+    $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
+
+    $repoCultureDisplayName=[System.Globalization.CultureInfo]::new($repoCulture).DisplayName
+    
+    $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+    Write-Host "$(Get-Date -Format "HH:mm:ss") | Start converting to language:  $repoCultureDisplayName" -ForegroundColor Cyan
+    foreach ($type in $objectTypes) {
+        Start-Job $CallConverter -Name $type -ArgumentList $type, $repoCulture, $TempRepo, $CultureConverter > $null
+    }
+
+    While (Get-Job -State "Running") {
+        Start-Sleep -seconds 2
+    }
+    Remove-Job *
+    
+    Write-Host "$(Get-Date -Format "HH:mm:ss") | Finished converting language" -ForegroundColor Cyan
+}
+
+function Convert-FileCulture {
+    param(
+        $config,
+        $repoCulture,
+        $objectPath
+    )
+
+    $content = [System.IO.File]::ReadAllText($objectPath, [System.Text.Encoding]::GetEncoding(850))
+    $newObjectPath= Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
+    [System.IO.File]::WriteAllText($newObjectPath, (Convert-TextLanguage -languageId $repoCulture -content $content -toNavision $true), [System.Text.Encoding]::GetEncoding(850))
+}
+
