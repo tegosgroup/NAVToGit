@@ -15,6 +15,7 @@ function Export-FromNAVToGit {
 
     $Functions = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\Functions.ps1"
     . $Functions
+     
 
     Get-ConfigFileIntegrity -config $config
 
@@ -54,6 +55,8 @@ function Export-FromNAVToGit {
             break
         }
         Start-Export-Nav6 -config $config -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
+        
+        
     }
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
@@ -64,5 +67,8 @@ function Export-FromNAVToGit {
             Start-Export -config $config -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
         }
     }
+
+    
+
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Export finished. You can close this Window." -ForegroundColor Green
 }
