@@ -8,13 +8,30 @@ function Import-FromGitToNAV {
     try {
         $config = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json") -ErrorAction Stop | ConvertFrom-Json
         $guiconfig = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\gui.config.json") -ErrorAction Stop | ConvertFrom-Json
-        $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json
     }
     catch {
         Write-Host "JSON cannot be read. Please check configfile." -ForegroundColor Red
         break
     }
 
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json")){
+        try {
+            $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            Write-Host "ThirdPartyIdAreas.json cannot be read from Git Repository. Please check your GitRepository" -ForegroundColor Red
+            break
+        }
+    } else {
+        try {
+            $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            Write-Host "ThirdPartyIdAreas.json cannot be read. Please check file $($ENV:APPDATA)\NavToGit\ThirdPartyIdAreas.json" -ForegroundColor Red
+            break
+        }
+    }
+    
     $Functions = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\Functions.ps1"
     . $Functions
 
@@ -101,6 +118,7 @@ function Import-FromGitToNAV {
             }
             elseif ($decision -eq "c") {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
+                $config.$($config.active).CompileObjects=$false
                 break
             }
         }
