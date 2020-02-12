@@ -80,8 +80,8 @@ function Get-FobForDelivery {
             }
             elseif ($decision -eq "s") {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Collecting changed object information"
-                Open-ObjectList -git (Get-Item $config.$($config.active).GitPath) -temp (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -CompareToolPath ($guiconfig.CompareToolPath) -CompareToolParam ($guiconfig.CompareToolParameter) -dark:$dark
-                Initialize-GridViewWithPsObjects -dataList (Show-Changed-Objects -databasePath (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -gitPath (Get-Item $config.$($config.active).GitPath)) -dark:$dark -getfobs
+                Open-ObjectList -git (Get-Item $config.$($config.active).GitPath) -temp (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -CompareToolPath ($guiconfig.CompareToolPath) -CompareToolParam ($guiconfig.CompareToolParameter) -dark:$dark -getFobs
+                Initialize-GridViewWithPsObjects -dataList (Show-Changed-Objects -databasePath (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -gitPath (Get-Item $config.$($config.active).GitPath)) -dark:$dark -getFobs
                 [System.Collections.Generic.List[String]]$selectedObjectsList = Show-Dialog
                 if (0 -eq $selectedObjectsList.Count) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects have been selected for fob creation"
