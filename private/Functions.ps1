@@ -525,16 +525,15 @@ function Get-FobAndDeleteTxt {
         [bool]$nav6,
         [pscredential]$credential
     )
-    
-    $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
+
     $databaseName = $config.$($config.active).DatabaseName
     $servername = $config.$($config.active).SQLServerName
     $finsqlPath = Join-Path -Path $config.$($config.active).RTCpath -ChildPath "finsql.exe"
-    $finzup = Join-Path($TempRepo) "$databaseName.zup"
+    $finzup = Join-Path(Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) "$databaseName.zup"
 
     $filterHashMap = [ordered]@{ }
     $toDeleteHashMap = [ordered]@{ }
-       
+
     $list | ForEach-Object {
         $type = [regex]::Match($_, "(.*)\\").Groups[1].Value
         if (Test-Path (Join-Path -Path (Join-Path -Path $config.$($config.active).Tempfolder -ChildPath $config.active) -ChildPath $_)) {
@@ -552,7 +551,7 @@ function Get-FobAndDeleteTxt {
         }
     }
 
-    if (-not (Test-Path $FobFolderPath)) {
+    if ($null -eq $FobFolderPath) {
         $FobFolderPath = Get-FolderPathDialog -Description "Select path where the delta fob(s) are going to be created"
     }
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Using path '$FobFolderPath' for delta fob(s)."    
@@ -579,7 +578,11 @@ function Get-FobAndDeleteTxt {
         $ToDeleteFileText = $ToDeleteFileText + "type=" + $_ + ";id=" + $toDeleteHashMap.Get_Item($_) + "`n"
     }
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing summary txt for objects which have been deleted"
-    New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value $ToDeleteFileText -Force > $null
+    if ($ToDeleteFileText -eq "") {
+        New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value "Nothing to be deleted" -Force > $null
+    } else {
+        New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value $ToDeleteFileText -Force > $null
+    }
 }
 
 function Set-ObjectsCompiled {

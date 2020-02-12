@@ -1,7 +1,7 @@
 function Get-FobForDelivery {
     param (
         $useConfig,
-        $Path,
+        $OutputPath,
         [parameter(DontShow)]
         [switch]$dark
     )
@@ -35,8 +35,7 @@ function Get-FobForDelivery {
             break
         }
     }
-
-    #TODO Objekte für fob wählbar
+    
     $GUIFunctions = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\gui\ImportObjectsList.ps1"
     . $GUIFunctions
 
@@ -62,7 +61,7 @@ function Get-FobForDelivery {
             Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs -credential $Credential
         }
         else {
-            #Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs
+            Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs
         }
         $nav6 = $false;
     }
@@ -71,32 +70,25 @@ function Get-FobForDelivery {
     $gitCommitId = git -C (Get-Item $config.$($config.active).GitPath) log -n1 --format="%h"
     $decision = Write-Host "$(Get-Date -Format "HH:mm:ss") | Comparing database with git commit '$gitCommitId'."
     $list = Compare-Folders -databaseFolder (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -gitFolder (Get-Item $config.$($config.active).GitPath) -nav6 $nav6
-    <#[System.Collections.Generic.List[String]]$list = {table\Table 0000050000.txt}
-    $list.Add("codeunit\Codeunit 0000000023.txt")
-    $list.Add("codeunit\Codeunit 0000000022.txt")
-    $list.Add("codeunit\Codeunit 0000000010.txt")
-    $list.Add("table\Table 0000000120.txt")
-    $list.Add("table\Table 0000000130.txt")
-    $list.Add("table\Table 0000000121.txt") #>
 
     if ([long]$list.Count -gt 0) {
         while ($true) {
             $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects in database compared to git commit '$gitCommitId'. Enter (a) to write all changed objects to fob, (s) to select the objects you want to write or (c) to cancel this operation"
             if ($decision -eq "a") {
-                Get-FobAndDeleteTxt -config $config -FobFolderPath $Path -list $list -nav6 $nav6 -credential $Credential
+                Get-FobAndDeleteTxt -config $config -FobFolderPath $OutputPath -list $list -nav6 $nav6 -credential $Credential
                 break
             }
             elseif ($decision -eq "s") {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Collecting changed object information"
                 Open-ObjectList -git (Get-Item $config.$($config.active).GitPath) -temp (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -CompareToolPath ($guiconfig.CompareToolPath) -CompareToolParam ($guiconfig.CompareToolParameter) -dark:$dark
-                Initialize-GridViewWithPsObjects -dataList (Show-Changed-Objects -databasePath (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -gitPath (Get-Item $config.$($config.active).GitPath)) -dark:$dark
+                Initialize-GridViewWithPsObjects -dataList (Show-Changed-Objects -databasePath (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -gitPath (Get-Item $config.$($config.active).GitPath)) -dark:$dark -getfobs
                 [System.Collections.Generic.List[String]]$selectedObjectsList = Show-Dialog
                 if (0 -eq $selectedObjectsList.Count) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects have been selected for fob creation"
                     break
                 }
                 else {
-                    Get-FobAndDeleteTxt -config $config -FobFolderPath $Path -list $selectedObjectsList -nav6 $nav6 -credential $Credential
+                    Get-FobAndDeleteTxt -config $config -FobFolderPath $OutputPath -list $selectedObjectsList -nav6 $nav6 -credential $Credential
                     break
                 }
             }
@@ -110,7 +102,7 @@ function Get-FobForDelivery {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | No changed objects to export - git and database are the same"
     }
     
-    Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $config.$($config.active).TempFolder) -ForegroundColor Cyan
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active)) -ForegroundColor Cyan
     Remove-Item -Recurse -Force -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active)
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Writing fob(s) for delivery completed. You can close this window.") -ForegroundColor Green
 }
