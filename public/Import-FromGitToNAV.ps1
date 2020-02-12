@@ -118,6 +118,7 @@ function Import-FromGitToNAV {
             }
             elseif ($decision -eq "c") {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
+                $config.$($config.active).CompileObjects=$false
                 break
             }
         }
