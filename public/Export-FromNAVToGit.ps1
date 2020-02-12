@@ -5,12 +5,29 @@ function Export-FromNAVToGit {
     )
     try {
         $config = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json") -ErrorAction Stop | ConvertFrom-Json
-        $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json
     }
     catch {
         Write-Host "JSON cannot be read. Please check configfile $($ENV:APPDATA)\NavToGit\config.json" -ForegroundColor Red
         Write-Host $_
         break
+    }
+
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json")){
+        try {
+            $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            Write-Host "ThirdPartyIdAreas.json cannot be read from Git Repository. Please check your GitRepository" -ForegroundColor Red
+            break
+        }
+    } else {
+        try {
+            $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            Write-Host "ThirdPartyIdAreas.json cannot be read. Please check file $($ENV:APPDATA)\NavToGit\ThirdPartyIdAreas.json" -ForegroundColor Red
+            break
+        }
     }
 
     $Functions = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\Functions.ps1"
