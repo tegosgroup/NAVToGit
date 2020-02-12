@@ -13,7 +13,7 @@ function Open-MainMenu {
     $currentSettingsItems = @()
 
     $NavToGit = New-Object system.Windows.Forms.Form
-    $NavToGit.ClientSize = '810,595'
+    $NavToGit.ClientSize = '810,585'
     $NavToGit.text = "Dynamics Nav To Git Integration"
     $NavToGit.TopMost = $false
     $NavToGit.DataBindings.DefaultDataSourceUpdateMode = 0
@@ -28,31 +28,40 @@ function Open-MainMenu {
     $NavToGit.KeyPreview = $true
 
     $ImportButton = New-Object system.Windows.Forms.Button
-    $ImportButton.BackColor = "#82bbfc"
+    $ImportButton.BackColor = "#FF1E90FF"
     $ImportButton.text = "&Import (Git >> Database)"
-    $ImportButton.width = 770
+    $ImportButton.width = 370
     $ImportButton.height = 60
     $ImportButton.location = New-Object System.Drawing.Point(20, 435)
     $ImportButton.Font = 'Segoe UI,12, style=Bold'
     $ImportButton.Add_MouseClick( { Open-ImportMessageBox })
 
     $ExportButton = New-Object system.Windows.Forms.Button
-    $ExportButton.BackColor = "#67e077"
+    $ExportButton.BackColor = "#FF90EE90"
     $ExportButton.text = "E&xport (Database >> Git)"
-    $ExportButton.width = 350
+    $ExportButton.width = 370
     $ExportButton.height = 60
-    $ExportButton.location = New-Object System.Drawing.Point(20, 515)
+    $ExportButton.location = New-Object System.Drawing.Point(420, 435)
     $ExportButton.Font = 'Segoe UI,12, style=Bold'
     $ExportButton.Add_MouseClick( { Open-ExportMessageBox })
 
     $SelectExportButton = New-Object system.Windows.Forms.Button
-    $SelectExportButton.BackColor = "#67e077"
+    $SelectExportButton.BackColor = "#FF32CD32"
     $SelectExportButton.text = "Se&lective Export... (Database >> Git)"
-    $SelectExportButton.width = 350
+    $SelectExportButton.width = 370
     $SelectExportButton.height = 60
-    $SelectExportButton.location = New-Object System.Drawing.Point(440, 515)
+    $SelectExportButton.location = New-Object System.Drawing.Point(420, 505)
     $SelectExportButton.Font = 'Segoe UI,12, style=Bold'
     $SelectExportButton.Add_MouseClick( { Open-SelectiveExportMessageBox })
+
+    $FobForDeliveryButton = New-Object system.Windows.Forms.Button
+    $FobForDeliveryButton.BackColor = "#FF87CEFA"
+    $FobForDeliveryButton.text = "Get Fobs For Delivery"
+    $FobForDeliveryButton.width = 370
+    $FobForDeliveryButton.height = 60
+    $FobForDeliveryButton.location = New-Object System.Drawing.Point(20, 505)
+    $FobForDeliveryButton.Font = 'Segoe UI,12, style=Bold'
+    $FobForDeliveryButton.Add_MouseClick( {  Open-GetFobMessageBox })
 
     $CurrentConfigurationGroupBox = New-Object system.Windows.Forms.Groupbox
     $CurrentConfigurationGroupBox.height = 400
@@ -261,6 +270,7 @@ function Open-MainMenu {
     $ToolTips.SetToolTip($ImportButton, "Import objects from Git repository into the NAV database")
     $ToolTips.SetToolTip($ExportButton, "Export objects from NAV database into the Git repository")
     $ToolTips.SetToolTip($SelectExportButton, "Filter the objects you want to export into the Git repository")
+    $ToolTips.SetToolTip($FobForDeliveryButton, "Export the differences between your current Git repository and the database")
 
     $NavToGit_KeyDown = [System.Windows.Forms.KeyEventHandler] {
         if ($_.Alt -eq $true -and $_.KeyCode -eq 'Space') {
@@ -281,7 +291,7 @@ function Open-MainMenu {
     $NavToGit.add_KeyDown($NavToGit_KeyDown)
     $CurrentConfigurationGroupBox.controls.AddRange($currentSettingsItems)
     $CurrentConfigurationGroupBox.controls.AddRange(@($currentConfigComboBox, $RTCPathLabel, $SQLServerNameLabel, $DatabaseNameLabel, $TempfolderLabel, $GitPathLabel, $AuthenticationLabel, $FobExportLabel, $CompileLabel, $EditButton, $DeleteButton, $newButton))
-    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $CurrentConfigurationGroupBox))
+    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $FobForDeliveryButton, $CurrentConfigurationGroupBox))
 
     LoadConfig -config $config -currentConfigComboBox $currentConfigComboBox
 
@@ -576,6 +586,14 @@ function Open-ExportMessageBox {
     }
 }
 
+function Open-GetFobMessageBox {
+    $Result = [System.Windows.Forms.MessageBox]::Show("Are you sure to export the difference between database and your current Git Repository with shown configuration?", "Export", 4, [System.Windows.Forms.MessageBoxIcon]::Question)
+    If ($Result -eq "Yes") {
+        [String]$argumentlist = '-noExit -command "$GetFobForDelivery = Join-Path -Path (Split-Path (Split-Path -Parent (""' + $PSScriptRoot + '""")) -Parent) -ChildPath "public\Get-FobForDelivery.ps1";. $GetFobForDelivery; Get-FobForDelivery"'
+        Start-Process powershell.exe -ArgumentList $argumentlist
+    }
+}
+
 function Open-SelectiveExportMessageBox {
     $SelectiveExportMenu = Join-Path -Path (Split-Path (Split-Path -Parent ($PSScriptRoot)) -Parent) -ChildPath ".\private\gui\SelectiveExportMenu.ps1"
     . $SelectiveExportMenu
@@ -718,9 +736,6 @@ function Set-DarkMode {
     $DeleteButton.BackColor = "#1e1e1e"
     $TempFolderSelectionButton.BackColor = "#1e1e1e"
     $GitFolderSelectionButton.BackColor = "#1e1e1e"
-    $ExportButton.BackColor = "#5e993e"
-    $SelectExportButton.BackColor = "#5e993e"
-    $ImportButton.BackColor = "#569cd6"
     $currentConfigComboBox.BackColor = "#383838"
     $currentConfigComboBox.ForeColor = "#d4d4d4"
     $RTCPathComboBox.BackColor = "#383838"
@@ -745,9 +760,6 @@ function Set-StandardMode {
     $DeleteButton.ResetBackColor()
     $TempFolderSelectionButton.ResetBackColor()
     $GitFolderSelectionButton.ResetBackColor()
-    $ExportButton.BackColor = "#67e077"
-    $SelectExportButton.BackColor = "#67e077"
-    $ImportButton.BackColor = "#82bbfc"
     $currentConfigComboBox.ResetBackColor()
     $currentConfigComboBox.ResetForeColor()
     $RTCPathComboBox.ResetBackColor()
