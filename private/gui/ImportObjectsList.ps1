@@ -9,7 +9,8 @@ function Open-ObjectList {
         $temp,
         $CompareToolPath,
         $CompareToolParam,
-        [switch]$dark
+        [switch]$dark,
+        [switch]$getFobs
     )
     $Global:Git = $git
     $Global:Temp = $temp
@@ -111,7 +112,9 @@ function Open-ObjectList {
     if ($dark) {
         Set-DarkModeForCompareList
     }
-
+    if ($getFobs) {
+        Set-GetFobsMode
+    }
     $Global:ObjectListGUI.ResumeLayout()
 }
 
@@ -119,7 +122,8 @@ function Initialize-GridViewWithPsObjects {
     Param(
         [System.Collections.Generic.List[PsCustomObject]]$dataList,
         [Array]$excludedProperties,
-        [switch]$dark
+        [switch]$dark,
+        [switch]$getFobs
     )
     if ($dark) {
         $Global:dataGridView.ColumnHeadersDefaultCellStyle.BackColor = '#383838'
@@ -147,14 +151,14 @@ function Initialize-GridViewWithPsObjects {
             }
         }
         $row.Resizable = [System.Windows.Forms.DataGridViewTriState]::False
-        $row.DefaultCellStyle.ForeColor = ConvertTo-Color -int (Resolve-FileChangesForImport -gitPath $git -databasePath $temp -relativeFilePath $_.'Object File Name' )
+        $row.DefaultCellStyle.ForeColor = ConvertTo-Color -int (Resolve-FileChangesForImport -gitPath $git -databasePath $temp -relativeFilePath $_.'Object File Name' ) -getFobs:$getFobs
         if ($dark) {
             $row.DefaultCellStyle.BackColor = '#383838'
         }
         $dataGridView.Rows.Add($row) > $null
     }
     $Global:dataGridView.AllowUserToAddRows = $false
-    $Global:dataGridView.Columns[$Global:dataGridView.Columns.Count-1].Visible = $false
+    $Global:dataGridView.Columns[$Global:dataGridView.Columns.Count - 1].Visible = $false
 }
 
 function Set-DarkModeForCompareList {
@@ -173,25 +177,49 @@ function Set-DarkModeForCompareList {
 
 function ConvertTo-Color {
     Param(
-        [int]$int
+        [int]$int,
+        [switch]$getFobs
     )
     if ($dark) {
-        switch ($int) {
-            -1 { return [System.Drawing.Color]::Red }
-            0 { return [System.Drawing.Color]::DeepSkyBlue }
-            1 { return [System.Drawing.Color]::LightGreen }
+        if ($getFobs) {
+            switch ($int) {
+                -1 { return [System.Drawing.Color]::LightGreen }
+                0 { return [System.Drawing.Color]::DeepSkyBlue }
+                1 { return [System.Drawing.Color]::Red }
+            }
+        }
+        else {
+            switch ($int) {
+                -1 { return [System.Drawing.Color]::Red }
+                0 { return [System.Drawing.Color]::DeepSkyBlue }
+                1 { return [System.Drawing.Color]::LightGreen }
+            }
         }
     }
     else {
-        switch ($int) {
-            -1 { return [System.Drawing.Color]::Red }
-            0 { return [System.Drawing.Color]::Blue }
-            1 { return [System.Drawing.Color]::Green }
+        if ($getFobs) {
+            switch ($int) {
+                -1 { return [System.Drawing.Color]::Green }
+                0 { return [System.Drawing.Color]::Blue }
+                1 { return [System.Drawing.Color]::Red }
+            }
         }
+        else {
+            switch ($int) {
+                -1 { return [System.Drawing.Color]::Red }
+                0 { return [System.Drawing.Color]::Blue }
+                1 { return [System.Drawing.Color]::Green }
+            }
+        } 
     }
 }
 
 function Show-Dialog {
     $Global:ObjectListGUI.ShowDialog() > $null
     return $Global:ResultList
+}
+
+function Set-GetFobsMode {
+    $Global:ObjectListGUI.Text = "Choose changes to export as fob"
+    $btnImportSelected.Text = "Export selected objects"
 }

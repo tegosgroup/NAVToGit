@@ -517,6 +517,73 @@ function Set-Nav-Changes {
     return $list
 }
 
+function Get-FobAndDeleteTxt {
+    Param(
+        $config,
+        $FobFolderPath,
+        [System.Collections.Generic.List[String]]$list,
+        [bool]$nav6,
+        [pscredential]$credential
+    )
+
+    $databaseName = $config.$($config.active).DatabaseName
+    $servername = $config.$($config.active).SQLServerName
+    $finsqlPath = Join-Path -Path $config.$($config.active).RTCpath -ChildPath "finsql.exe"
+    $finzup = Join-Path(Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) "$databaseName.zup"
+
+    $filterHashMap = [ordered]@{ }
+    $toDeleteHashMap = [ordered]@{ }
+
+    $list | ForEach-Object {
+        $type = [regex]::Match($_, "(.*)\\").Groups[1].Value
+        if (Test-Path (Join-Path -Path (Join-Path -Path $config.$($config.active).Tempfolder -ChildPath $config.active) -ChildPath $_)) {
+            if (-not $filterHashMap.Get_Item($type)) {
+                $filterHashMap.Add($type, [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
+            } else {
+                $filterHashMap.$type = $filterHashMap.$type + ("|" + [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
+            }
+        } else {
+            if (-not $toDeleteHashMap.Get_Item($type)) {
+                $toDeleteHashMap.Add($type, [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
+            } else {
+                $toDeleteHashMap.$type = $toDeleteHashMap.$type + ("|" + [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
+            }
+        }
+    }
+
+    if ($null -eq $FobFolderPath) {
+        $FobFolderPath = Get-FolderPathDialog -Description "Select path where the delta fob(s) are going to be created"
+    }
+    Write-Host "$(Get-Date -Format "HH:mm:ss") | Using path '$FobFolderPath' for delta fob(s)."    
+    
+    $gitCommitId = git -C (Get-Item $config.$($config.active).GitPath) log -n1 --format="%h"
+
+    $filter = ""
+    $filterHashMap.Keys | ForEach-Object {
+        if ($nav6) {
+            $filter = $filter + "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_) + "`n"
+        } else {
+        $filter = "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_)
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob for object type $($_)"
+        Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$_.fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+        }
+    }
+    if ($nav6) {
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing summary txt for objects which have been created or changed"
+        New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toChangeOrCreate.txt" -ItemType File -Value $filter -Force > $null        
+    }
+
+    $ToDeleteFileText = ""
+    $toDeleteHashMap.Keys | ForEach-Object {
+        $ToDeleteFileText = $ToDeleteFileText + "type=" + $_ + ";id=" + $toDeleteHashMap.Get_Item($_) + "`n"
+    }
+    Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing summary txt for objects which have been deleted"
+    if ($ToDeleteFileText -eq "") {
+        New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value "Nothing to be deleted" -Force > $null
+    } else {
+        New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value $ToDeleteFileText -Force > $null
+    }
+}
 
 function Set-ObjectsCompiled {
     param(
@@ -621,7 +688,8 @@ function Resolve-FileChangesForImport {
 function Show-Changed-Objects {
     param(
         $databasePath,
-        $gitPath
+        $gitPath,
+        [switch]$GitToDatabase
     )
     $GridViewList = New-Object System.Collections.Generic.List[PsCustomObject]
     
@@ -629,8 +697,14 @@ function Show-Changed-Objects {
     $regexTime = [Regex]::new("Time=([\d][\d]\:[\d][\d]\:[\d][\d]);")
     $regexVersion = [Regex]::new("(?<=Version List=)(.*?);")
     $regexName = [Regex]::new("(?<=OBJECT\s\S+\s\S+\s)(.*?){")
-    
 
+    if ($GitToDatabase) {
+        $ObjectNotInGit = "DELETE"
+        $ObjectNotInDatabase = "CREATE"
+    } else {
+        $ObjectNotInGit = "CREATE"
+        $ObjectNotInDatabase = "DELETE"
+    }
 
     $list | ForEach-Object {
         $objectfilename = $_
@@ -647,7 +721,7 @@ function Show-Changed-Objects {
             $objectDatabaseDatetime = "-"
             $objectDatabaseVersion = "-"
             $objectDatabaseName = "-"
-            $objectchangetype = "CREATE"
+            $objectchangetype = $ObjectNotInDatabase
         }
         try {
             $objectGit = Get-Content (Join-Path -Path $gitPath -ChildPath $_) -ErrorAction SilentlyContinue
@@ -659,7 +733,7 @@ function Show-Changed-Objects {
             $objectGitDatetime = "-"
             $objectGitVersion = "-"
             $objectGitName = "-"
-            $objectchangetype = "DELETE"
+            $objectchangetype = $ObjectNotInGit
         }
 
         $changedobject = New-Object -TypeName psobject
@@ -674,15 +748,9 @@ function Show-Changed-Objects {
         $changedobject | Add-Member -MemberType NoteProperty -Name "Database Version" -Value $objectDatabaseVersion
         $changedobject | Add-Member -MemberType NoteProperty -Name "Git Version" -Value $objectGitVersion
         $changedobject | Add-Member -MemberType NoteProperty -Name "Object File Name" -Value $objectfilename
-        
 
-
-
-
-        $GridViewList.Add($changedobject)
-        
+        $GridViewList.Add($changedobject)        
     }
-
     return $GridViewList
 }
 
@@ -753,3 +821,21 @@ function Convert-FileCulture {
     [System.IO.File]::WriteAllText($newObjectPath, (Convert-TextLanguage -languageId $repoCulture -content $content -toNavision $true), [System.Text.Encoding]::GetEncoding(850))
 }
 
+function Get-FolderPathDialog {
+    param(
+        [String]$Description
+    )
+    
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+    $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+    if ("" -eq $Description) {
+        $FolderBrowser.Description = "Please select a path."
+    } else {
+        $FolderBrowser.Description = $Description
+    }
+    $FolderBrowser.ShowDialog() > $null
+    $Path = $FolderBrowser.SelectedPath
+    $FolderBrowser.Dispose()
+    return $Path
+}
