@@ -19,8 +19,9 @@ function Invoke-UpdateProcess{
     Expand-Archive -Path $downloadFile -DestinationPath $tempRepo -Force
     Remove-Item -Path $downloadFile -Force
     
-    Get-ChildItem -Path (Get-ChildItem $currentRepo)[0].FullName -Recurse | ForEach-Object {
-        Write-Host $_.FullName
+    Get-ChildItem -Path (Get-ChildItem $tempRepo)[0].FullName | ForEach-Object {
+        Remove-Item -Path $currentRepo\$_ -Recurse -Force -ErrorAction SilentlyContinue
+        Move-Item -Path $_.FullName -Destination $currentRepo
     }
 }
 
