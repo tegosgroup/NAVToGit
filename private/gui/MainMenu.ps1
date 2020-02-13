@@ -287,7 +287,7 @@ function Open-MainMenu {
         }
     }
 
-    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectExportButton)
+    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectExportButton, $FobForDeliveryButton)
     $NavToGit.add_KeyDown($NavToGit_KeyDown)
     $CurrentConfigurationGroupBox.controls.AddRange($currentSettingsItems)
     $CurrentConfigurationGroupBox.controls.AddRange(@($currentConfigComboBox, $RTCPathLabel, $SQLServerNameLabel, $DatabaseNameLabel, $TempfolderLabel, $GitPathLabel, $AuthenticationLabel, $FobExportLabel, $CompileLabel, $EditButton, $DeleteButton, $newButton))
@@ -410,7 +410,7 @@ function Set-EditingMode {
         if ($_.GetType() -eq [System.Windows.Forms.TextBox]) {
             $_.ReadOnly = -Not $global:editing
         }
-        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton)) {
+        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton) -or ($_ -eq $FobForDeliveryButton)) {
             $_.Enabled = -not $global:editing
         }
         else {
@@ -484,6 +484,10 @@ function Invoke-ButtonEditClick {
         $DeleteButton.Text = "&Delete"
         Save-EditToConfig -config $config
     }elseif($Global:newMode){
+        if (-not [bool](Test-Config)){
+            [System.Windows.Forms.MessageBox]::Show("Current Configuration is not complete.", "", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+            return
+        }
         Get-ObjectMembers $config | ForEach-Object {
             if ($currentConfigComboBox.Text -eq $_.key) {
                 [System.Windows.Forms.MessageBox]::Show("A configuration with this name already exists.", "", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
@@ -527,6 +531,7 @@ function Invoke-ButtonEditClick {
         $ImportButton.Enabled = $true
         $ExportButton.Enabled = $true
         $SelectExportButton.Enabled = $true
+        $FobForDeliveryButton.Enabled = $true
         Set-EditingMode -components $currentSettingsItems
         return
     }
@@ -560,6 +565,7 @@ function Invoke-ButtonNewClick {
         $ImportButton.Enabled = $false
         $ExportButton.Enabled = $false
         $SelectExportButton.Enabled = $false
+        $FobForDeliveryButton.Enabled = $false
         $EditButton.Text = "&Save"
         $DeleteButton.Text = "&Cancel"
 
@@ -665,6 +671,7 @@ function Open-DeleteMessageBox {
         $ImportButton.Enabled = $true
         $ExportButton.Enabled = $true
         $SelectExportButton.Enabled = $true
+        $FobForDeliveryButton.Enabled = $true
         $Global:newMode = $false
         Set-ActiveItem -config $config -indexName $config.active -NavToGit $NavToGit
         $currentConfigComboBox.SelectedIndex = $currentConfigComboBox.Items.IndexOf($config.active)
