@@ -1,6 +1,11 @@
 function Get-UpdateAvailable{
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Checking for update") -ForegroundColor Cyan
-    $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" | ConvertFrom-Json
+    try {
+        $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+    } catch{
+        Write-Host("$(Get-Date -Format "HH:mm:ss") | No connection to Github.") -ForegroundColor Red
+        return $false
+    }
     $currentRepo = (Get-Item $PSScriptRoot).Parent.FullName
 
     $currentVersion = Get-Content -Path (Join-Path -Path $currentRepo -ChildPath "version") -First 1
@@ -17,7 +22,13 @@ function Get-UpdateAvailable{
 }
 
 function Invoke-UpdateProcess{
-    $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" | ConvertFrom-Json
+    try {
+        $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Host("$(Get-Date -Format "HH:mm:ss") | No connection to Github.") -ForegroundColor Red
+        break
+    }
     $currentRepo = (Get-Item $PSScriptRoot).Parent.FullName
     $tempRepo = Join-Path -Path $env:TEMP -ChildPath "NavToGitUpdate"
     $downloadFile = Join-Path -Path $tempRepo -ChildPath "update.zip"
