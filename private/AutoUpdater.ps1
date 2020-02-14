@@ -5,6 +5,13 @@ function Get-UpdateAvailable{
 
     $currentVersion = Get-Content -Path (Join-Path -Path $currentRepo -ChildPath "version") -First 1
     $remoteVersion = $obj.tag_name
+    if (-Not ($currentVersion -eq $remoteVersion)) {
+        $changes = $obj.body
+        Write-Host("$(Get-Date -Format "HH:mm:ss") | Found new version $remoteVersion :") -ForegroundColor Cyan
+        Write-Host("$changes") -ForegroundColor White
+    }else {
+        Write-Host("$(Get-Date -Format "HH:mm:ss") | You are already up to date") -ForegroundColor Green
+    }
 
     return -Not ($currentVersion -eq $remoteVersion)
 }
