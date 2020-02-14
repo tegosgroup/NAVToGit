@@ -1,4 +1,5 @@
 function Get-UpdateAvailable{
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Checking for update") -ForegroundColor Cyan
     $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" | ConvertFrom-Json
     $currentRepo = (Get-Item $PSScriptRoot).Parent.FullName
 
@@ -14,17 +15,22 @@ function Invoke-UpdateProcess{
     $tempRepo = Join-Path -Path $env:TEMP -ChildPath "NavToGitUpdate"
     $downloadFile = Join-Path -Path $tempRepo -ChildPath "update.zip"
 
-    Invoke-WebRequest -Uri "https://github.com/tegosGroup/NAVToGit/archive/v0.1.zip" -OutFile $downloadFile
+    Remove-Item -Path $tempRepo -Recurse -Force -ErrorAction SilentlyContinue > $null
+    New-Item -path $tempRepo -ItemType Directory > $null
 
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Downloading latest release...") -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $obj.zipball_url -OutFile $downloadFile
+
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Extracting download zip") -ForegroundColor Cyan
     Expand-Archive -Path $downloadFile -DestinationPath $tempRepo -Force
+
     Remove-Item -Path $downloadFile -Force
+
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Updating your local version") -ForegroundColor Cyan
+    Robocopy (Get-ChildItem $tempRepo)[0].FullName $currentRepo /mov /mir /xd .git > $null
+
+    Remove-Item -Path $tempRepo -Recurse -Force > $null
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Update finished") -ForegroundColor Green
     
-    Get-ChildItem -Path (Get-ChildItem $tempRepo)[0].FullName | ForEach-Object {
-        Remove-Item -Path $currentRepo\$_ -Recurse -Force -ErrorAction SilentlyContinue
-        Move-Item -Path $_.FullName -Destination $currentRepo
-    }
+    Set-Content -Path (Join-Path -Path $currentRepo -ChildPath "version") -Value $obj.tag_name
 }
-
-#Get-UpdateAvailable
-
-#Invoke-UpdateProcess
