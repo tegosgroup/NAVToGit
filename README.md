@@ -19,8 +19,7 @@ Setup your first config with the GUI. These settings will configure the NAV Data
 ```powershell
 Show-NavToGitGui
 ```
-
-![content](https://user-images.githubusercontent.com/60692534/73855139-ec1bd380-4833-11ea-855d-02998ea515ab.png)
+![image](https://user-images.githubusercontent.com/58514804/74413498-cf892800-4e3f-11ea-8af9-dade45505e2d.png)
 
 Config Parameter |  Description
 ------------ | -------------
