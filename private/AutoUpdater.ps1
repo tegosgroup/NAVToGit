@@ -1,4 +1,4 @@
-function Get-UpdateAvailable{
+function Get-UpdateAvailable {    
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Checking for update") -ForegroundColor Cyan
     try {
         $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
@@ -17,7 +17,7 @@ function Get-UpdateAvailable{
     }else {
         Write-Host("$(Get-Date -Format "HH:mm:ss") | You are already up to date") -ForegroundColor Green
     }
-
+    Set-Content -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\.lastupdatecheck") -Value (Get-Date -Format "dd.MM.yyyy HH:mm:ss")
     return -Not ($currentVersion -eq $remoteVersion)
 }
 
@@ -51,4 +51,15 @@ function Invoke-UpdateProcess{
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Update finished") -ForegroundColor Green
     
     Set-Content -Path (Join-Path -Path $currentRepo -ChildPath "VERSION") -Value $obj.tag_name
+}
+
+function Get-UpdateCheckNeeded {
+    $CheckNeeded = $true
+    if (Test-Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\.lastupdatecheck")) {
+        [datetime]$lastUpdateCheck = [datetime]::parseexact((Get-Content (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\.lastupdatecheck") -First 1),"dd.MM.yyyy HH:mm:ss",$null)
+        if (((Get-Date) - $lastUpdateCheck).TotalDays -lt 1) {
+            $CheckNeeded = $false
+        }
+    }
+    return $CheckNeeded
 }
