@@ -25,6 +25,6 @@ function Invoke-UpdateProcess{
     }
 }
 
-Get-UpdateAvailable
+#Get-UpdateAvailable
 
-Invoke-UpdateProcess
+#Invoke-UpdateProcess
