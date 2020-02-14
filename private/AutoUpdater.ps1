@@ -32,5 +32,5 @@ function Invoke-UpdateProcess{
     Remove-Item -Path $tempRepo -Recurse -Force > $null
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Update finished") -ForegroundColor Green
     
-    Set-Content -Path (Join-Path -Path $currentRepo -ChildPath "version") -Value $obj.tag_name
+    Set-Content -Path (Join-Path -Path $currentRepo -ChildPath "VERSION") -Value $obj.tag_name
 }
