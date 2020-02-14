@@ -12,7 +12,7 @@
 RootModule = 'DynamicsNAVToGit.psm1'
 
 # Die Versionsnummer dieses Moduls
-ModuleVersion = '0.1'
+ModuleVersion = '0.1.1'
 
 # Unterstützte PSEditions
 CompatiblePSEditions = @()
