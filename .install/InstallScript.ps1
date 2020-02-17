@@ -26,7 +26,7 @@ Invoke-WebRequest -Uri $obj.zipball_url -OutFile $downloadFile
 Write-Host("$(Get-Date -Format "HH:mm:ss") | Extracting download zip") -ForegroundColor White
 Expand-Archive -Path $downloadFile -DestinationPath $temp -Force
 
-$userPath = Join-Path -Path $env:HOMEPATH -ChildPath "Documents\WindowsPowerShell\Modules\NAVToGit"
+$userPath = "$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments))\WindowsPowerShell\Modules\NAVToGit"
 if (-not (Test-Path -Path $userPath)) {
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating directory C:$userPath") -ForegroundColor Cyan
     New-Item -Path $userPath -ItemType Directory > $null
@@ -40,7 +40,7 @@ Remove-Item -Path $temp -Recurse -Force
 
 Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating Desktop Shortcut for GUI") -ForegroundColor White
 $WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Show-NAVToGitGui.lnk")
+$Shortcut = $WshShell.CreateShortcut("$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop))\Show-NAVToGitGui.lnk")
 $Shortcut.TargetPath = "$env:WINDIR\system32\WindowsPowerShell\v1.0\powershell.exe"
 $Shortcut.Arguments = "-command Show-NAVToGitGui"
 $Shortcut.Save()
