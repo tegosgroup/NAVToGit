@@ -9,7 +9,7 @@
 @{
 
 # Die diesem Manifest zugeordnete Skript- oder Binärmoduldatei.
-RootModule = 'DynamicsNAVToGit.psm1'
+RootModule = 'NAVToGit.psm1'
 
 # Die Versionsnummer dieses Moduls
 ModuleVersion = '0.1.1'
