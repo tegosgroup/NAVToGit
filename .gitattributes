@@ -1,1 +1,2 @@
-* eol=crlf
+* text eol=crlf
+*.dll binary
