@@ -1,18 +1,76 @@
 # NavToGit Powershell Module
-A powershell module to synchronize NAV Databases(6.0-14.0) with Git.
+A powershell module to synchronize NAV Databases (6.0-14.0) with Git.
 
 ## Installation
 
-Use Git or any other Git Client to clone this repository.
+The easiest way to install the script is by using our following install script.
+This will download the latest release of the NAVToGit script and install it into your Powershell user modules directory. Afterwards the module will be available in every Powershell instance and also update itself automatically whenever a new release has been published.
 
+Start **Powershell ISE** and copy this script, which downloads the current InstallScript from GitHub, and executes it:
 ```powershell
-git clone https://github.com/tegosGroup/NAVToGit.git
-```
-Afterwards import the module with powershell.
+# NAVToGit Install Script
 
-```powershell
-Import-Module <path to your local git repo>\DynamicsNAVToGit.psm1
+$installScript = [Scriptblock]::Create((Invoke-WebRequest -Uri "https://raw.githubusercontent.com/tegosGroup/NAVToGit/master/.install/InstallScript.ps1").Content)
+Invoke-Command -ScriptBlock $installScript
 ```
+**Alternatively**, if you do not want to blindly download and execute scripts from the internet, you can copy the complete InstallScript into **Powershell ISE**:
+<details><summary><i>Click here for the complete InstallScript</i></summary>
+<p>
+  
+```powershell
+# NAVToGit Install Script  
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Starting NAVToGit Module installation") -ForegroundColor White
+$approval = Read-Host ("$(Get-Date  -Format "HH:mm:ss") | Do you want to continue? [y/n]")
+if ($approval -ne "y") {
+	Write-Host("$(Get-Date  -Format "HH:mm:ss") | Cancelled NAVToGit module installation") -ForegroundColor Red
+	break
+}  
+
+try {
+	$obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+}
+catch {
+	Write-Host("$(Get-Date  -Format "HH:mm:ss") | No connection to Github.") -ForegroundColor Red
+	break
+}
+
+$temp = Join-Path -Path $env:TEMP -ChildPath "NavToGitUpdate"
+$downloadFile = Join-Path -Path $temp -ChildPath "update.zip"  
+
+Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue > $null
+New-Item -path $temp -ItemType Directory > $null  
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Downloading latest release...") -ForegroundColor Cyan
+Invoke-WebRequest -Uri $obj.zipball_url -OutFile $downloadFile  
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Extracting download zip") -ForegroundColor White
+Expand-Archive -Path $downloadFile -DestinationPath $temp -Force  
+
+$userPath = "$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments))\WindowsPowerShell\Modules\NAVToGit"
+
+if (-not (Test-Path -Path $userPath)) {
+	Write-Host("$(Get-Date  -Format "HH:mm:ss") | Creating directory C:$userPath") -ForegroundColor Cyan
+	New-Item -Path $userPath -ItemType Directory > $null
+} 
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Moving new files") -ForegroundColor Cyan
+Robocopy (Get-ChildItem  $temp)[0].FullName $userPath /mov /mir /xd .git > $null  
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Deleting temp folder $temp") -ForegroundColor White
+Remove-Item -Path $temp -Recurse -Force  
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | Creating Desktop Shortcut for GUI") -ForegroundColor White
+$WshShell = New-Object -comObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut("$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop))\Show-NAVToGitGui.lnk")
+$Shortcut.TargetPath = "$env:WINDIR\system32\WindowsPowerShell\v1.0\powershell.exe"
+$Shortcut.Arguments = "-command Show-NAVToGitGui"
+$Shortcut.Save()  
+
+Write-Host("$(Get-Date  -Format "HH:mm:ss") | NAVToGit Module has been installed.") -ForegroundColor Green
+```
+
+</p>
+</details>
 
 ## First Setup
 Setup your first config with the GUI. These settings will configure the NAV Database <-> Git source connection.
