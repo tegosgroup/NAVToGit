@@ -235,7 +235,9 @@ function Get-ThirdPartyFilterList {
         $area = @{ }
 
         $_.value | ForEach-Object {
-            $area.Add($_.from, $_.to)
+            if (-not $areas.ContainsKey($_.from)) {
+                $area.Add($_.from, $_.to)
+            }
         }
 
         $area.Keys | ForEach-Object {
