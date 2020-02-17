@@ -80,7 +80,12 @@ function Import-FromGitToNAV {
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
             $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
-            Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs -credential $Credential
+            if (-not ($null -eq $Credential)) {
+                Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs -credential $Credential
+            } else {
+                Write-Host "No credentials have been provided. Aborting..." -ForegroundColor Red
+                break
+            }
         }
         else {
             Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs

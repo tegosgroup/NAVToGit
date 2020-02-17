@@ -78,14 +78,16 @@ function Export-FromNAVToGit {
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
             $Credential = $host.ui.PromptForCredential("Need credentials for NAV Instance.", "Please enter username and password.", "", "")
-            Start-Export -config $config -credential $Credential -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
+            if (-not ($null -eq $Credential)) {
+                Start-Export -config $config -credential $Credential -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
+            } else {
+                Write-Host "No credentials have been provided. Aborting..." -ForegroundColor Red
+            }
         }
         else {
             Start-Export -config $config -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
         }
-    }
-
-    
+    }    
 
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Export finished. You can close this Window." -ForegroundColor Green
 }

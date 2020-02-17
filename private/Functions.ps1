@@ -48,9 +48,9 @@
             }
         }
         else {
+            $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
             foreach ($type in $objectTypes) {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
-                $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
                 Start-Job $ExportNav6 -Name $type -ArgumentList $type, $TempRepo, $databaseName, $modulePath, $filter > $null
             }
         }
@@ -168,9 +168,9 @@ function Start-Export {
         }
     }
     else {
+        $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
         foreach ($type in $objectTypes) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
-            $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
             Start-Job $Export -Name $type -ArgumentList $type, "Type=$type;ID=$filter", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential > $null
         }
         if ($config.$($config.active).EnableThirdPartyFobExport) {
@@ -235,7 +235,9 @@ function Get-ThirdPartyFilterList {
         $area = @{ }
 
         $_.value | ForEach-Object {
-            $area.Add($_.from, $_.to)
+            if (-not $area.ContainsKey($_.from)) {
+                $area.Add($_.from, $_.to)
+            }
         }
 
         $area.Keys | ForEach-Object {
@@ -257,7 +259,9 @@ function Get-NoThirdPartyFilter {
     $areas = @{ }
     Get-ObjectMembers $thirdpartyfobs | ForEach-Object {
         $_.value | ForEach-Object {
-            $areas.Add($_.from, $_.to)
+            if (-not $areas.ContainsKey($_.from)) {
+                $areas.Add($_.from, $_.to)
+            }
         }
     }
 
