@@ -42,7 +42,7 @@ Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating Desktop Shortcut for GUI")
 $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Show-NAVToGitGui.lnk")
 $Shortcut.TargetPath = "$env:WINDIR\system32\WindowsPowerShell\v1.0\powershell.exe"
-$Shortcut.Arguments = "-WindowStyle Hidden -command Show-NAVToGitGui"
+$Shortcut.Arguments = "-command Show-NAVToGitGui"
 $Shortcut.Save()
 
 Write-Host("$(Get-Date -Format "HH:mm:ss") | NAVToGit Module has been installed.") -ForegroundColor Green
