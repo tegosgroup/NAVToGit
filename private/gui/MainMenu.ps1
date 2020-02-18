@@ -247,6 +247,17 @@ function Open-MainMenu {
     $AuthenticationComboBox.DrawMode = [System.Windows.Forms.DrawMode]::OwnerDrawFixed
     $AuthenticationComboBox.Add_DrawItem( { Show-ComboBox -combobox $AuthenticationComboBox } )
 
+    $VersionTableLayoutPanel = New-Object System.Windows.Forms.TableLayoutPanel
+    $VersionTableLayoutPanel.Dock = [System.Windows.Forms.DockStyle]::Bottom
+    $VersionTableLayoutPanel.Height = 15
+    
+    $VersionLabel = New-Object system.Windows.Forms.Label
+    $VersionLabel.text = "Version: $(Get-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath "..\..\VERSION") -First 1)"
+    $VersionLabel.AutoSize = $true
+    $VersionLabel.Anchor = [System.Windows.Forms.AnchorStyles]::Right` -bor [System.Windows.Forms.AnchorStyles]::Bottom
+    $VersionLabel.Font = 'Segoe UI,8'
+    $VersionLabel.ForeColor = "#b4b4b4"
+
     $ToolTips = New-Object system.Windows.Forms.ToolTip
     $ToolTips.SetToolTip($RTCPathComboBox, "NAV Version and the path in which the module can find the finsql.exe")
     $ToolTips.SetToolTip($RTCPathLabel, "NAV Version and the path in which the module can find the finsql.exe")
@@ -292,6 +303,9 @@ function Open-MainMenu {
     $CurrentConfigurationGroupBox.controls.AddRange($currentSettingsItems)
     $CurrentConfigurationGroupBox.controls.AddRange(@($currentConfigComboBox, $RTCPathLabel, $SQLServerNameLabel, $DatabaseNameLabel, $TempfolderLabel, $GitPathLabel, $AuthenticationLabel, $FobExportLabel, $CompileLabel, $EditButton, $DeleteButton, $newButton))
     $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $FobForDeliveryButton, $CurrentConfigurationGroupBox))
+    
+    $VersionTableLayoutPanel.Controls.AddRange(@($VersionLabel))
+    $NavToGit.controls.AddRange(@($VersionTableLayoutPanel))
 
     LoadConfig -config $config -currentConfigComboBox $currentConfigComboBox
 
