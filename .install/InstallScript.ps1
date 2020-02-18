@@ -38,11 +38,14 @@ Robocopy (Get-ChildItem $temp)[0].FullName $userPath /mov /mir /xd .git > $null
 Write-Host("$(Get-Date -Format "HH:mm:ss") | Deleting temp folder $temp") -ForegroundColor White
 Remove-Item -Path $temp -Recurse -Force
 
-Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating Desktop Shortcut for GUI") -ForegroundColor White
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop))\Show-NAVToGitGui.lnk")
-$Shortcut.TargetPath = "$env:WINDIR\system32\WindowsPowerShell\v1.0\powershell.exe"
-$Shortcut.Arguments = "-command Show-NAVToGitGui"
-$Shortcut.Save()
+$approval = Read-Host ("$(Get-Date -Format "HH:mm:ss") | Do you want to create a desktop shortcut to the NAVToGitGui? [y/n]")
+if ($approval -eq "y") {
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating Desktop Shortcut for GUI") -ForegroundColor White
+    $WshShell = New-Object -comObject WScript.Shell
+    $Shortcut = $WshShell.CreateShortcut("$([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop))\Show-NAVToGitGui.lnk")
+    $Shortcut.TargetPath = "$env:WINDIR\system32\WindowsPowerShell\v1.0\powershell.exe"
+    $Shortcut.Arguments = "-command Show-NAVToGitGui"
+    $Shortcut.Save()
+}
 
 Write-Host("$(Get-Date -Format "HH:mm:ss") | NAVToGit Module has been installed.") -ForegroundColor Green
