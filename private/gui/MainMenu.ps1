@@ -56,7 +56,7 @@ function Open-MainMenu {
 
     $FobForDeliveryButton = New-Object system.Windows.Forms.Button
     $FobForDeliveryButton.BackColor = "#FF87CEFA"
-    $FobForDeliveryButton.text = "Get Fobs For Delivery"
+    $FobForDeliveryButton.text = "Get &Fobs For Delivery"
     $FobForDeliveryButton.width = 370
     $FobForDeliveryButton.height = 60
     $FobForDeliveryButton.location = New-Object System.Drawing.Point(20, 505)
@@ -284,16 +284,52 @@ function Open-MainMenu {
     $ToolTips.SetToolTip($FobForDeliveryButton, "Export the differences between your current Git repository and the database")
 
     $NavToGit_KeyDown = [System.Windows.Forms.KeyEventHandler] {
-        if ($_.Alt -eq $true -and $_.KeyCode -eq 'Space') {
-            if ($Global:dark -eq $false) { 
-                Set-DarkMode
-                $_.SuppressKeyPress = $true
-                $Global:dark = $true
-            }
-            else {
-                Set-StandardMode
-                $_.SuppressKeyPress = $true
-                $Global:dark = $false
+        $key = $_
+        if ($_.Alt -eq $true) {
+            switch ($_.KeyCode) {
+                'Space' {
+                    if ($Global:dark -eq $false) { 
+                        Set-DarkMode
+                        $key.SuppressKeyPress = $true
+                        $Global:dark = $true
+                    }
+                    else {
+                        Set-StandardMode
+                        $key.SuppressKeyPress = $true
+                        $Global:dark = $false
+                    }
+                  }
+                'n' {
+                    Invoke-ButtonNewClick -config $config -NavToGit $NavToGit -combobox $currentConfigComboBox -editingComponents $currentSettingsItems
+                }
+                'e' {
+                    if (-not $editing) {
+                        Invoke-ButtonEditClick -config $config -NavToGit $NavToGit
+                    }
+                }
+                's' {
+                    if ($editing) {
+                        Invoke-ButtonEditClick -config $config -NavToGit $NavToGit
+                    }
+                }
+                'd' {
+                    if (-not $editing) {
+                        Open-DeleteMessageBox -config $config -NavToGit $NavToGit
+                    }
+                }
+                'i' {
+                    Open-ImportMessageBox
+                }
+                'x' {
+                    Open-ExportMessageBox
+                }
+                'f' {
+                    Open-GetFobMessageBox
+                }
+                'l' {
+                    Open-SelectiveExportMessageBox
+                }
+                Default {}
             }
         }
     }
@@ -332,7 +368,7 @@ function Open-MainMenu {
         $guiconfig | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\gui.config.json")
     } )
 
-    $NavToGit.ShowDialog()    
+    $NavToGit.ShowDialog()
 }
 
 function Show-ComboBox {
