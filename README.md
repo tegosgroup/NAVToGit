@@ -111,6 +111,9 @@ All available Nav Versions with path to the related RoleTailoredClient will be s
 #### Set-ActiveNAVToGitConnection *-ConfigToActivate <ConfigName>*
 The entered configuration in the parameter `ConfigToActivate` will be stored in the json as active. 
 Starting the command without parameter will show all available configurations and call you to select one.
+	
+#### Update-NAVToGit
+Searches the GitHub repository for new releases and prompts for update if a newer version is found.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
