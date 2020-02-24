@@ -288,7 +288,7 @@ $Export = {
         New-Item -Path $TempRepo -Name $type.ToLower() -ItemType Directory -Force
     }
     $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\Export.txt"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName.zup"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmss).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
@@ -361,9 +361,9 @@ function Copy-Robocopy {
         $objectTypes
     )
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Moving files to Git-Repository " + $GitRepo) -ForegroundColor Cyan
-    foreach($type in $objectTypes){
-        $typeFolderTemp= Join-Path -Path $TempRepo -ChildPath $type.ToLower()
-        $typeFolderGit=Join-Path -Path $GitRepo -ChildPath $type.ToLower()
+    foreach ($type in $objectTypes) {
+        $typeFolderTemp = Join-Path -Path $TempRepo -ChildPath $type.ToLower()
+        $typeFolderGit = Join-Path -Path $GitRepo -ChildPath $type.ToLower()
         Robocopy $typeFolderTemp $typeFolderGit /mov /mir > $null
     }
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $TempRepo) -ForegroundColor Cyan
@@ -375,14 +375,23 @@ function Compare-Dirs {
         $databaseFolder,
         $gitFolder
     )
-    $folderDatabase = Get-ChildItem $databaseFolder | ForEach-Object { Get-FileHash -Path $_.FullName -Algorithm SHA1 } 
+    $folderDatabase = Get-ChildItem $databaseFolder | ForEach-Object { Get-FileHash -Path $_.FullName -Algorithm SHA1 }
     
-    $folderGit = Get-ChildItem $gitFolder | ForEach-Object { Get-FileHash -Path $_.FullName -Algorithm SHA1 } 
-    
+    $folderGit = Get-ChildItem $gitFolder | ForEach-Object { Get-FileHash -Path $_.FullName -Algorithm SHA1 }    
 
     $hashtable = New-Object System.Collections.Generic.HashSet[string]
-    Compare-Object -ReferenceObject $folderDatabase -DifferenceObject $folderGit  -Property hash -PassThru | ForEach-Object {
-        $hashtable.Add("$($type.ToLower())\" + (Get-Item -Path $_.Path).Name) > $null
+    try {
+        Compare-Object -ReferenceObject $folderDatabase -DifferenceObject $folderGit  -Property hash -PassThru | ForEach-Object {
+            $hashtable.Add("$($type.ToLower())\" + (Get-Item -Path $_.Path).Name) > $null
+        }
+    }
+    catch {
+        if ($null -eq $folderDatabase) {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$type' from database exported. Possible error? No $type objects have been compared!" -ForegroundColor Red
+        }
+        if ($null -eq $folderGit) {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$type' found in git-folder. Possible error? No $type objects have been compared!" -ForegroundColor Red
+        }
     }
     return $hashtable
 }
@@ -543,13 +552,16 @@ function Get-FobAndDeleteTxt {
         if (Test-Path (Join-Path -Path (Join-Path -Path $config.$($config.active).Tempfolder -ChildPath $config.active) -ChildPath $_)) {
             if (-not $filterHashMap.Get_Item($type)) {
                 $filterHashMap.Add($type, [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
-            } else {
+            }
+            else {
                 $filterHashMap.$type = $filterHashMap.$type + ("|" + [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
             }
-        } else {
+        }
+        else {
             if (-not $toDeleteHashMap.Get_Item($type)) {
                 $toDeleteHashMap.Add($type, [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
-            } else {
+            }
+            else {
                 $toDeleteHashMap.$type = $toDeleteHashMap.$type + ("|" + [string][regex]::Match($_, "0+(.*)\.txt").Groups[1].Value)
             }
         }
@@ -566,10 +578,11 @@ function Get-FobAndDeleteTxt {
     $filterHashMap.Keys | ForEach-Object {
         if ($nav6) {
             $filter = $filter + "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_) + "`n"
-        } else {
-        $filter = "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_)
-        Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob for object type $($_)"
-        Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$_.fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+        }
+        else {
+            $filter = "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_)
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob for object type $($_)"
+            Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$_.fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
         }
     }
     if ($nav6) {
@@ -584,7 +597,8 @@ function Get-FobAndDeleteTxt {
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing summary txt for objects which have been deleted"
     if ($ToDeleteFileText -eq "") {
         New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value "Nothing to be deleted" -Force > $null
-    } else {
+    }
+    else {
         New-Item -Path "$FobFolderPath\$($config.active)-Delta-$gitCommitId-toDelete.txt" -ItemType File -Value $ToDeleteFileText -Force > $null
     }
 }
@@ -705,7 +719,8 @@ function Show-Changed-Objects {
     if ($GitToDatabase) {
         $ObjectNotInGit = "DELETE"
         $ObjectNotInDatabase = "CREATE"
-    } else {
+    }
+    else {
         $ObjectNotInGit = "CREATE"
         $ObjectNotInDatabase = "DELETE"
     }
@@ -797,7 +812,7 @@ function Convert-Culture {
     )
     $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
 
-    $repoCultureDisplayName=[System.Globalization.CultureInfo]::new($repoCulture).DisplayName
+    $repoCultureDisplayName = [System.Globalization.CultureInfo]::new($repoCulture).DisplayName
     
     $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Start converting to language:  $repoCultureDisplayName" -ForegroundColor Cyan
@@ -821,7 +836,7 @@ function Convert-FileCulture {
     )
 
     $content = [System.IO.File]::ReadAllText($objectPath, [System.Text.Encoding]::GetEncoding(850))
-    $newObjectPath= Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
+    $newObjectPath = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
     [System.IO.File]::WriteAllText($newObjectPath, (Convert-TextLanguage -languageId $repoCulture -content $content -toNavision $true), [System.Text.Encoding]::GetEncoding(850))
 }
 
@@ -835,7 +850,8 @@ function Get-FolderPathDialog {
     $FolderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
     if ("" -eq $Description) {
         $FolderBrowser.Description = "Please select a path."
-    } else {
+    }
+    else {
         $FolderBrowser.Description = $Description
     }
     $FolderBrowser.ShowDialog() > $null
