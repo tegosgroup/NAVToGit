@@ -796,5 +796,8 @@ function Test-Config{
             $isOkay = $false
         }
     }
+    if ($currentConfigComboBox.Text -eq "") {
+        $isOkay = $false
+    }
     return $isOkay
 }
