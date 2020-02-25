@@ -108,10 +108,10 @@ The parameter `useConfig` specifies the configuration which will be used.
 #### Show-AvailableNAVVersions
 All available Nav Versions with path to the related RoleTailoredClient will be shown.
 
-#### Set-ActiveNAVToGitConnection *-ConfigToActivate <ConfigName>*
-The entered configuration in the parameter `ConfigToActivate` will be stored in the json as active. 
+#### Set-ActiveNAVToGitConfiguration *-useConfig <ConfigName>*
+The entered configuration in the parameter `useConfig` will be stored in the json as active. 
 Starting the command without parameter will show all available configurations and call you to select one.
-	
+
 #### Update-NAVToGit
 Searches the GitHub repository for new releases and prompts for update if a newer version is found.
 
