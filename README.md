@@ -10,7 +10,8 @@ Start **Powershell ISE** and copy this script, which downloads the current Insta
 ```powershell
 # NAVToGit Install Script
 
-$installScript = [Scriptblock]::Create((Invoke-WebRequest -Uri "https://raw.githubusercontent.com/tegosGroup/NAVToGit/master/.install/InstallScript.ps1").Content)
+$uri = "https://raw.githubusercontent.com/tegosGroup/NAVToGit/master/.install/InstallScript.ps1"
+$installScript = [Scriptblock]::Create((Invoke-WebRequest -Uri $uri).Content)
 Invoke-Command -ScriptBlock $installScript
 ```
 **Alternatively**, if you do not want to blindly download and execute scripts from the internet, you can copy the complete InstallScript into **Powershell ISE**:
