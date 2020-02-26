@@ -27,7 +27,7 @@ function Set-ActiveNAVToGitConfiguration {
 
     $activated = $false
     Get-ObjectMembers $config | ForEach-Object {
-        if (($_.key -like $useconfig)) {
+        if (($_.key -like $useConfig)) {
             $config.active = $_.key
             $useConfig = $_.key
             $config | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json")
