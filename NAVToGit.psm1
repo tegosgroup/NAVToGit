@@ -67,4 +67,4 @@ if (-not (Test-Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPar
 }
 
 Export-ModuleMember -Function $Public.Basename
-Write-Host "NAV Git Module has been loaded."
+Write-Host "NAVToGit Module has been loaded."
