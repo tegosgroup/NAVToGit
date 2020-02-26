@@ -60,7 +60,7 @@ function Export-FromNAVToGit {
     if ($finsqlversion -lt 7) {
         if ([Environment]::Is64BitProcess) {
             write-warning "Old NAV Version: Switching to 32-bit PowerShell."
-            $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "DynamicsNAVToGit.psm1"
+            $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
             if ($null -eq $customFilter ){
                 [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Export-FromNAVToGit"
             }
