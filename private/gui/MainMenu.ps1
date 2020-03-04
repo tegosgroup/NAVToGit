@@ -14,7 +14,7 @@ function Open-MainMenu {
 
     $NavToGit = New-Object system.Windows.Forms.Form
     $NavToGit.ClientSize = '810,585'
-    $NavToGit.text = "Dynamics Nav To Git Integration"
+    $NavToGit.text = "NAVToGit GUI"
     $NavToGit.TopMost = $false
     $NavToGit.DataBindings.DefaultDataSourceUpdateMode = 0
     $NavToGit.MaximizeBox = $false
