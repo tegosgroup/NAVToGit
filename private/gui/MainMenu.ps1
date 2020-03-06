@@ -608,7 +608,7 @@ function Invoke-ButtonNewClick {
                 $_.ReadOnly = $false
                 $_.Text = ""
             }
-            $TempFolderTextBox.Text = $env:TEMP
+            $TempFolderTextBox.Text = Join-Path -Path $env:TEMP -ChildPath "\NavToGit\"
         }
         $AuthenticationComboBox.SelectedIndex = $AuthenticationComboBox.Items.IndexOf("Windows") 
         $FobExportCheckBox.Checked = $false

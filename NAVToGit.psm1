@@ -44,15 +44,12 @@ if (-not (Test-Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\") -Erro
     New-Item (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\") -ItemType Directory
 }
 
+if (-not (Test-Path (Join-Path -Path $Env:TEMP -ChildPath "\NavToGit\") -ErrorAction SilentlyContinue)) {
+    New-Item (Join-Path -Path $Env:TEMP -ChildPath "\NavToGit\") -ItemType Directory
+}
+
 if (-not (Test-Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json") -ErrorAction SilentlyContinue)) {
     Copy-Item -Path (Join-Path -Path $PSScriptRoot -Childpath ".config\config.json") -Destination (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json")
-    $config = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json") -ErrorAction Stop | ConvertFrom-Json
-    Get-ObjectMembers $config | ForEach-Object {
-        if (-not ($_.key -eq "active")) {
-            $config.$($_.key).Tempfolder = $env:TEMP
-        }
-    }
-    $config | ConvertTo-Json | Out-File -FilePath (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json")
     Write-Host "No config.json found in $(Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\") - sample config.json has been generated."
 }
 
