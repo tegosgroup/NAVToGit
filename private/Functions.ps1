@@ -77,7 +77,7 @@
             }
             else {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Executing Robocopy" -ForegroundColor Cyan
-                Copy-Robocopy -GitRepo $GitRepo -TempRepo $TempRepo -objectTypes $objectTypes
+                Copy-Robocopy -GitRepo $GitRepo -TempRepo $TempRepo -objectTypes $objectTypes -EnableThirdPartyFobExport $false
             }
         }
     }
@@ -208,7 +208,7 @@ function Start-Export {
         }
         else {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Executing Robocopy" -ForegroundColor Cyan
-            Copy-Robocopy -GitRepo $GitRepo -TempRepo $TempRepo -objectTypes $objectTypes
+            Copy-Robocopy -GitRepo $GitRepo -TempRepo $TempRepo -objectTypes $objectTypes -EnableThirdPartyFobExport $config.$($config.active).EnableThirdPartyFobExport
         }
     }
 }
@@ -358,13 +358,19 @@ function Copy-Robocopy {
     Param(
         $GitRepo,
         $TempRepo,
-        $objectTypes
+        $objectTypes,
+        [bool]$EnableThirdPartyFobExport
     )
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Moving files to Git-Repository " + $GitRepo) -ForegroundColor Cyan
     foreach ($type in $objectTypes) {
         $typeFolderTemp = Join-Path -Path $TempRepo -ChildPath $type.ToLower()
         $typeFolderGit = Join-Path -Path $GitRepo -ChildPath $type.ToLower()
         Robocopy $typeFolderTemp $typeFolderGit /mov /mir > $null
+    }
+    if ($EnableThirdPartyFobExport) {
+        $typeFolderTemp = Join-Path -Path $TempRepo -ChildPath 'fob'
+        $typeFolderGit = Join-Path -Path $GitRepo -ChildPath 'fob'
+        Robocopy $typeFolderTemp $typeFolderGit /mov > $null
     }
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $TempRepo) -ForegroundColor Cyan
     Remove-Item -Recurse -Path $TempRepo
