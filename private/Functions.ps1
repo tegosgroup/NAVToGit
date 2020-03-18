@@ -394,6 +394,10 @@ function Compare-Dirs {
     catch {
         if ($null -eq $folderDatabase) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$type' from database exported. Possible error? No $type objects have been compared!" -ForegroundColor Red
+            if (Test-Path (Join-Path -Path $databaseFolder -ChildPath "..\$type-Log.log")){
+                $logFile = Join-Path -Path $databaseFolder -ChildPath "..\$type-Log.log"
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Error Message: "(Get-Content $logFile) -ForegroundColor Red
+            }
         }
         if ($null -eq $folderGit) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$type' found in git-folder. Possible error? No $type objects have been compared!" -ForegroundColor Red
