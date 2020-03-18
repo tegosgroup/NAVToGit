@@ -116,5 +116,8 @@ Starting the command without parameter will show all available configurations an
 #### Update-NAVToGit
 Searches the GitHub repository for new releases and prompts for update if a newer version is found.
 
+## Further information
+You can find further information in our [Wiki](https://github.com/tegosGroup/NAVToGit/wiki)
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
