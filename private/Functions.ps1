@@ -72,8 +72,8 @@
 
         if (-Not ($skipRobocopy)) {
             if ($useCustomFilter) {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Copying Content of Temp to Git-Repo" -ForegroundColor Cyan
-                Copy-Folder -Source $TempRepo -Destination $GitRepo
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Moving objects to Git-Repository" -ForegroundColor Cyan
+                Move-FilteredObjects -Source $TempRepo -Destination $GitRepo
             }
             else {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Executing Robocopy" -ForegroundColor Cyan
@@ -86,16 +86,16 @@
     }
 }
 
-function Copy-Folder {
+function Move-FilteredObjects {
     Param(
         $Source,
         $Destination
     )
-
     Get-ChildItem -Path $Source | ForEach-Object {
-        Copy-Item $_.FullName -Destination $Destination -Exclude "navcommandresult.txt" -Recurse -Force
+        Copy-Item $_.FullName -Destination $Destination -Exclude @("navcommandresult.txt","*.zup") -Recurse -Force
     }
-
+    Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $Source) -ForegroundColor Cyan
+    Remove-Item -Recurse -Path $Source
 }
 
 function Show-ChangesInApplication {
@@ -203,8 +203,8 @@ function Start-Export {
 
     if (-Not ($skipRobocopy)) {
         if ($useCustomFilter) {
-            Write-Host "$(Get-Date -Format "HH:mm:ss") | Copying Content of Temp to Git-Repo" -ForegroundColor Cyan
-            Copy-Folder -Source $TempRepo -Destination $GitRepo
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | Moving objects to Git-Repository" -ForegroundColor Cyan
+            Move-FilteredObjects -Source $TempRepo -Destination $GitRepo
         }
         else {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Executing Robocopy" -ForegroundColor Cyan
