@@ -63,6 +63,23 @@
 
         Receive-Job *
 
+        $AtLeastOneObjectTypeFailedToExport = $false
+        Get-ChildItem $TempRepo -Attributes Directory | ForEach-Object {
+            $DirectoryInfo = Get-ChildItem $_.FullName | Measure-Object
+            If ($DirectoryInfo.Count -eq 0) {
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$_' from database exported. Invalid license?" -ForegroundColor Red
+                $AtLeastOneObjectTypeFailedToExport = $true
+            }
+        }
+
+        if ($AtLeastOneObjectTypeFailedToExport) {
+            $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Do you want to continue the operation? This may result in DATA LOSS![y/n]"
+            if (-not ($decision -eq "y")) {
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Operation has been aborted." -ForegroundColor Red
+                break
+            }
+        }
+
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
         Split-Objects -TempRepo $TempRepo -types $objectTypes
 
