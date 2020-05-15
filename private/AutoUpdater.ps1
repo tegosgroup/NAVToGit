@@ -1,6 +1,7 @@
 function Get-UpdateAvailable {    
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Checking for update") -ForegroundColor Cyan
     try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
     } catch{
         Write-Host("$(Get-Date -Format "HH:mm:ss") | No connection to Github.") -ForegroundColor Red
@@ -23,6 +24,7 @@ function Get-UpdateAvailable {
 
 function Invoke-UpdateProcess{
     try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
     }
     catch {

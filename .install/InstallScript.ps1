@@ -8,6 +8,7 @@ if ($approval -ne "y") {
 }
 
 try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $obj = Invoke-WebRequest -Uri "https://api.github.com/repos/tegosGroup/NAVToGit/releases/latest" -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
 }
 catch {
