@@ -267,10 +267,10 @@ function Invoke-OKButtonClick {
     )
     [string]$CustomFilter = """codeunit=" + $CodeunitTextBox.Text + ";menusuite=" + $MenuSuiteTextBox.Text + ";page=" + $PageTextBox.Text + ";report=" + $ReportTextBox.Text + ";table=" + $TableTextBox.Text + ";xmlport=" + $XMLPortTextBox.Text
     if ($nav6){
-        $CustomFilter = $CustomFilter + ";query=" + $QueryTextBox.Text 
+        $CustomFilter = $CustomFilter + ";dataport=" + $DataportTextBox.Text + ";form=" + $FormTextBox.Text
     }
     else{
-        $CustomFilter = $CustomFilter + ";dataport=" + $DataportTextBox.Text + ";form=" + $FormTextBox.Text
+        $CustomFilter = $CustomFilter + ";query=" + $QueryTextBox.Text        
     }
     $CustomFilter = $CustomFilter + """"
 
