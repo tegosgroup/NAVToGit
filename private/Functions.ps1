@@ -48,7 +48,7 @@
             }
         }
         else {
-            $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
+            $filter = "ID=$(Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs)"
             foreach ($type in $objectTypes) {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
                 Start-Job $ExportNav6 -Name $type -ArgumentList $type, $TempRepo, $databaseName, $modulePath, $filter > $null
@@ -100,6 +100,14 @@
     }
     else {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | The specified Navision Classic Client instance could not be found! finsql.exe has to be running!" -ForegroundColor Red
+    }
+
+    if ($config.$($config.active).EnableThirdPartyFobExport) {
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | The following third-party areas have to be exported manually:" -ForegroundColor Yellow
+        $ThirdPartyFilterList = Get-ThirdPartyFilterList -thirdpartyfobs $thirdpartyfobs
+        $ThirdPartyFilterList.Keys | ForEach-Object {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | $_.fob : $($ThirdPartyFilterList.Get_Item($_))"
+        }
     }
 }
 
@@ -211,6 +219,15 @@ function Start-Export {
         break
     }
 
+    $ErrorLogs = Get-ChildItem -Filter "*.log" -ErrorAction SilentlyContinue -Path $TempRepo
+    if (-not ($null -eq $ErrorLogs)) {
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:" -ForegroundColor Red
+        $ErrorLogs | ForEach-Object {
+            Write-Host $(Get-Content $_.FullName) -ForegroundColor Red
+        }
+        break
+    }
+
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
     Split-Objects -TempRepo $TempRepo -types $objectTypes
     
@@ -314,7 +331,7 @@ $Export = {
         $username = $credential.UserName
         $password = $credential.GetNetworkCredential().Password
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=no, username=$username, password=$password, id=$finzup, logfile=$logFile" -Wait
-    }    
+    }
 }
 
 $ExportFob = {

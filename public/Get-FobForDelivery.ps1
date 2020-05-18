@@ -64,7 +64,7 @@ function Get-FobForDelivery {
     if ($finsqlversion -lt 7) {
         if ([Environment]::Is64BitProcess) {
             Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
-            $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "DynamicsNAVToGit.psm1"
+            $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
             [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV"
             &"$env:WINDIR\syswow64\windowspowershell\v1.0\powershell.exe" -NoProfile -command $Startx86
             break
