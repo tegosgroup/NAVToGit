@@ -48,7 +48,7 @@
             }
         }
         else {
-            $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
+            $filter = "ID=$(Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs)"
             foreach ($type in $objectTypes) {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
                 Start-Job $ExportNav6 -Name $type -ArgumentList $type, $TempRepo, $databaseName, $modulePath, $filter > $null
