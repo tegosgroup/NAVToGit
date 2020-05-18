@@ -219,6 +219,15 @@ function Start-Export {
         break
     }
 
+    $ErrorLogs = Get-ChildItem -Filter "*.log" -ErrorAction SilentlyContinue -Path $TempRepo
+    if (-not ($null -eq $ErrorLogs)) {
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:" -ForegroundColor Red
+        $ErrorLogs | ForEach-Object {
+            Write-Host $(Get-Content $_.FullName) -ForegroundColor Red
+        }
+        break
+    }
+
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
     Split-Objects -TempRepo $TempRepo -types $objectTypes
     
@@ -322,7 +331,7 @@ $Export = {
         $username = $credential.UserName
         $password = $credential.GetNetworkCredential().Password
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=no, username=$username, password=$password, id=$finzup, logfile=$logFile" -Wait
-    }    
+    }
 }
 
 $ExportFob = {
