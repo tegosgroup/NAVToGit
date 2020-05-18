@@ -101,6 +101,14 @@
     else {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | The specified Navision Classic Client instance could not be found! finsql.exe has to be running!" -ForegroundColor Red
     }
+
+    if ($config.$($config.active).EnableThirdPartyFobExport) {
+        Write-Host "$(Get-Date -Format "HH:mm:ss") | The following third-party areas have to be exported manually:" -ForegroundColor Yellow
+        $ThirdPartyFilterList = Get-ThirdPartyFilterList -thirdpartyfobs $thirdpartyfobs
+        $ThirdPartyFilterList.Keys | ForEach-Object {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | $_.fob : $($ThirdPartyFilterList.Get_Item($_))"
+        }
+    }
 }
 
 function Move-FilteredObjects {
