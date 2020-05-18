@@ -67,7 +67,7 @@
         Get-ChildItem $TempRepo -Attributes Directory | ForEach-Object {
             $DirectoryInfo = Get-ChildItem $_.FullName | Measure-Object
             If ($DirectoryInfo.Count -eq 0) {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$_' from database exported. Invalid license?" -ForegroundColor Red
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$_' from database exported. Invalid license or not all ThirdPartyIdAreas defined?" -ForegroundColor Red
                 $AtLeastOneObjectTypeFailedToExport = $true
             }
         }
