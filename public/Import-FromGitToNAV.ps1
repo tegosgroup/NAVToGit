@@ -87,7 +87,7 @@ function Import-FromGitToNAV {
         }
         else {
             if ($config.$($config.active).Authentication -like "UserPassword") {
-                $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+                $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
             }
 
             $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
@@ -144,6 +144,10 @@ function Import-FromGitToNAV {
                 else {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
                     $config.$($config.active).CompileObjects = $false
+                }
+
+                if ($config.$($config.active).CompileObjects){
+                    Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $list  -nav6 $false -credential $credential -config $config
                 }
             }
             else {
@@ -214,34 +218,31 @@ function Import-FromGitToNAV {
                     break
                 }
             }
-            
+            if ($config.$($config.active).CompileObjects -and -not $nav6){
+                Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $selectedObjectsList  -nav6 $nav6 -credential $Credential -config $config
+            } elseif (($config.$($config.active).CompileObjects -and $nav6)) {
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($selectedObjectsList.Count) objects" -ForegroundColor Cyan
+                $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $selectedObjectsList            
+                if ($failedObjectsList.length -gt 0) {
+                    $regex = [Regex]::new("([^\\]*).*\s([0-9]*).txt")
+                    $failedObjectsList | ForEach-Object {
+                        $match = $regex.Matches($_)[0]
+                        $Type = $match.Groups[1].Value
+                        [long]$Id = $match.Groups[2].Value
+                        Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to compile $Type $Id" -ForegroundColor Red
+                        $selectedObjectsList.Remove($_) > $null
+                    }
+                    $selectedObjectsList | ForEach-Object {
+                        $match = $regex.Matches($_)[0]
+                        $Type = $match.Groups[1].Value
+                        [long]$Id = $match.Groups[2].Value
+                        Write-Host "$(Get-Date -Format "HH:mm:ss") | Successfully compiled $Type $Id." -ForegroundColor Green
+                    }
+                }
+            }            
         }
         else {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | No import or delete in database needed - git and database are in sync"
-        }
-    }
-
-    if ($config.$($config.active).CompileObjects -and -not $nav6) {
-        Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $selectedObjectsList  -nav6 $nav6 -credential $Credential -config $config
-    }
-    elseif (($config.$($config.active).CompileObjects -and $nav6)) {
-        Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($selectedObjectsList.Count) objects" -ForegroundColor Cyan
-        $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $selectedObjectsList            
-        if ($failedObjectsList.length -gt 0) {
-            $regex = [Regex]::new("([^\\]*).*\s([0-9]*).txt")
-            $failedObjectsList | ForEach-Object {
-                $match = $regex.Matches($_)[0]
-                $Type = $match.Groups[1].Value
-                [long]$Id = $match.Groups[2].Value
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to compile $Type $Id" -ForegroundColor Red
-                $selectedObjectsList.Remove($_) > $null
-            }
-            $selectedObjectsList | ForEach-Object {
-                $match = $regex.Matches($_)[0]
-                $Type = $match.Groups[1].Value
-                [long]$Id = $match.Groups[2].Value
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Successfully compiled $Type $Id." -ForegroundColor Green
-            }
         }
     }
 
@@ -253,5 +254,3 @@ function Import-FromGitToNAV {
     
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Import finished. You can close this window.") -ForegroundColor Green
 }
-
-Import-FromGitToNAV -customFilter "codeunit=id=220..230"
