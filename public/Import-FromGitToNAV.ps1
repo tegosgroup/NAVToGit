@@ -15,7 +15,7 @@ function Import-FromGitToNAV {
         break
     }
 
-    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json")){
+    if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json")) {
         try {
             $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
         }
@@ -23,7 +23,8 @@ function Import-FromGitToNAV {
             Write-Host "ThirdPartyIdAreas.json cannot be read from Git Repository. Please check your GitRepository" -ForegroundColor Red
             break
         }
-    } else {
+    }
+    else {
         try {
             $thirdpartyfobs = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\ThirdPartyIdAreas.json") -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
         }
@@ -68,10 +69,23 @@ function Import-FromGitToNAV {
     [int]$finsqlversion = Get-ChildItem $finsqlPath | ForEach-Object { $_.VersionInfo.ProductVersion } | ForEach-Object { $_.SubString(0, $_.IndexOf(".")) }
 
     
-    if (-not $customFilter -eq "") {   
+    if (-not $customFilter -eq "") {
+        if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
+            $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
+            $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
+        }
+        else {
+            $SystemCulture = Get-Culture
+            $RepoCulture = $SystemCulture.LCID
+        }
+    
+        $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+        . $CultureConverter
+
         if ($finsqlversion -lt 7) {
 
-        } else {
+        }
+        else {
             if ($config.$($config.active).Authentication -like "UserPassword") {
                 $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
             }
@@ -81,20 +95,32 @@ function Import-FromGitToNAV {
             $databaseName = $config.$($config.active).DatabaseName
             $servername = $config.$($config.active).SQLServerName
             
-            $list = Convert-CustomStringToFilenameList -customFilter $customFilter
+            [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
             if ([long]$list.Count -gt 0) {
-                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or (n) to cancel this operation"
+                for ($i = 0; $i -lt $list.Count; $i++) {
+                    $item = $list[$i]
+                    $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
+                    if (-not(Test-Path $path)) {
+                        $list.RemoveAt($i) > $null                            
+                        $i--
+                    }
+                }
+
+                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
                 if ($decision -eq "y") {
-                    foreach($item in $list){
-                        $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
+                    for ($i = 0; $i -lt $list.Count; $i++) {
+                        $item = $list[$i]
+                        $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                        
+
                         if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
-                            New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active)
+                            New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
                         }
                         $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
-                        <#if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+
+                        if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
                             Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
-                            $path = Join-Path -Path $TempRepo -ChildPath $item
-                        }#>
+                            $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
+                        }
                         
                         if ($null -eq $credential) {
                             Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=yes, logfile=$log, importaction=overwrite" -Wait > $null
@@ -105,24 +131,27 @@ function Import-FromGitToNAV {
                             Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=no, username=$username, password=$password, logfile=$log, importaction=overwrite" -Wait > $null
                         }
                         if (Test-Path $log) {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Error while trying to Import $type ${id}:" -ForegroundColor Red
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import ${item}:" -ForegroundColor Red
                             Write-Host (Get-Content($log)) -ForegroundColor White
-                            $list.RemoveAt($i) > $null
+                            $list.RemoveAt($i) > $null                            
                             $i--
                         }
                         else {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$count/$listlength] Imported $type $id" -ForegroundColor Green
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported ${item}" -ForegroundColor Green
                         }
                     }
-                } elseif ($decision -eq "c") {
-                    Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
-                    $config.$($config.active).CompileObjects=$false
                 }
-            } else {
+                else {
+                    Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
+                    $config.$($config.active).CompileObjects = $false
+                }
+            }
+            else {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Custom Filter could not be read correctly."
             }
         }
-    } else {        
+    }
+    else {        
         if ($finsqlversion -lt 7) {
             if ([Environment]::Is64BitProcess) {
                 Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
@@ -139,7 +168,8 @@ function Import-FromGitToNAV {
                 $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
                 if (-not ($null -eq $Credential)) {
                     Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs -credential $Credential
-                } else {
+                }
+                else {
                     Write-Host "No credentials have been provided. Aborting..." -ForegroundColor Red
                     break
                 }
@@ -180,7 +210,7 @@ function Import-FromGitToNAV {
                 }
                 elseif ($decision -eq "c") {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
-                    $config.$($config.active).CompileObjects=$false
+                    $config.$($config.active).CompileObjects = $false
                     break
                 }
             }
@@ -191,9 +221,10 @@ function Import-FromGitToNAV {
         }
     }
 
-    if ($config.$($config.active).CompileObjects -and -not $nav6){
+    if ($config.$($config.active).CompileObjects -and -not $nav6) {
         Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $selectedObjectsList  -nav6 $nav6 -credential $Credential -config $config
-    } elseif (($config.$($config.active).CompileObjects -and $nav6)) {
+    }
+    elseif (($config.$($config.active).CompileObjects -and $nav6)) {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($selectedObjectsList.Count) objects" -ForegroundColor Cyan
         $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $selectedObjectsList            
         if ($failedObjectsList.length -gt 0) {
@@ -222,3 +253,5 @@ function Import-FromGitToNAV {
     
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Import finished. You can close this window.") -ForegroundColor Green
 }
+
+Import-FromGitToNAV -customFilter "codeunit=id=220..230"
