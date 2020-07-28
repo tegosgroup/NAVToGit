@@ -83,6 +83,92 @@ function Import-FromGitToNAV {
         . $CultureConverter
 
         if ($finsqlversion -lt 7) {
+            if ([Environment]::Is64BitProcess) {
+                Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
+                $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
+                [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV -customFilter """ + $customFilter + """"
+                &"$env:WINDIR\syswow64\windowspowershell\v1.0\powershell.exe" -NoProfile -command $Startx86
+                break
+            }
+            $nav6 = $true
+
+            if ($nav6) {
+                Import-Module (Join-Path -Path ((Get-Item $PSScriptRoot).Parent.FullName) -ChildPath "lib/COMNavConnector.dll") 
+            }
+
+            $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
+            $gitFolderPath = Get-Item $config.$($config.active).GitPath
+            $databaseName = $config.$($config.active).DatabaseName
+            $servername = $config.$($config.active).SQLServerName
+
+            [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
+            if ([long]$list.Count -gt 0) {
+                for ($i = 0; $i -lt $list.Count; $i++) {
+                    $item = $list[$i]
+                    $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
+                    if (-not(Test-Path $path)) {
+                        $list.RemoveAt($i) > $null                            
+                        $i--
+                    }
+                }
+
+                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
+                if ($decision -eq "y") {
+                    for ($i = 0; $i -lt $list.Count; $i++) {
+                        $item = $list[$i]
+                        $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                        
+
+                        if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
+                            New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
+                        }
+                        $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
+
+                        if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+                            Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
+                            $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
+                        }
+                        
+                        if ((Set-NavisionObjectText -DatabaseName $databaseName -FilePath $path) -eq 0) {
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported $type $id" -ForegroundColor Green
+                        }
+                        else {
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import $type ${id}." -ForegroundColor Red
+                            $list.RemoveAt($i) > $null
+                            $i--
+                        }
+                    }
+                }
+                else {
+                    Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
+                    $config.$($config.active).CompileObjects = $false
+                }
+
+                if ($config.$($config.active).CompileObjects) {
+                    Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($list.Count) objects" -ForegroundColor Cyan
+                    $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $list
+                    $regex = [Regex]::new("([^\\]*).*\s([0-9]*).txt")
+                    if ($failedObjectsList.length -gt 0) {                        
+                        $failedObjectsList | ForEach-Object {
+                            $match = $regex.Matches($_)[0]
+                            $Type = $match.Groups[1].Value
+                            [long]$Id = $match.Groups[2].Value
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to compile $Type $Id" -ForegroundColor Red
+                            $list.Remove($_) > $null
+                        }                        
+                    }
+                    $list | ForEach-Object {
+                        $match = $regex.Matches($_)[0]
+                        $Type = $match.Groups[1].Value
+                        [long]$Id = $match.Groups[2].Value
+                        Write-Host "$(Get-Date -Format "HH:mm:ss") | Successfully compiled $Type $Id." -ForegroundColor Green
+                    }
+                }
+            }
+            else {
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Custom Filter could not be read correctly."
+            }
+
+            
 
         }
         else {
