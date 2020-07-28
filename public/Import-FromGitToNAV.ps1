@@ -70,6 +70,17 @@ function Import-FromGitToNAV {
 
     
     if (-not $customFilter -eq "") {
+        if ($finsqlversion -lt 7) {
+            if ([Environment]::Is64BitProcess) {
+                Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
+                $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
+                [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV -customFilter """ + $customFilter + """"
+                &"$env:WINDIR\syswow64\windowspowershell\v1.0\powershell.exe" -NoProfile -command $Startx86
+                break
+            }
+            $nav6 = $true
+        }
+
         if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
             $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
             $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
@@ -82,52 +93,44 @@ function Import-FromGitToNAV {
         $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
         . $CultureConverter
 
-        if ($finsqlversion -lt 7) {
-            if ([Environment]::Is64BitProcess) {
-                Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
-                $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
-                [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV -customFilter """ + $customFilter + """"
-                &"$env:WINDIR\syswow64\windowspowershell\v1.0\powershell.exe" -NoProfile -command $Startx86
-                break
+        $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
+        $gitFolderPath = Get-Item $config.$($config.active).GitPath
+        $databaseName = $config.$($config.active).DatabaseName
+        $servername = $config.$($config.active).SQLServerName
+
+        [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
+
+        if ([long]$list.Count -gt 0) {
+            for ($i = 0; $i -lt $list.Count; $i++) {
+                $item = $list[$i]
+                $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
+                if (-not(Test-Path $path)) {
+                    $list.RemoveAt($i) > $null                            
+                    $i--
+                }
             }
-            $nav6 = $true
 
-            if ($nav6) {
-                Import-Module (Join-Path -Path ((Get-Item $PSScriptRoot).Parent.FullName) -ChildPath "lib/COMNavConnector.dll") 
-            }
+            $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
+            if ($decision -eq "y") {
+                if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
+                    New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
+                }
+                $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
 
-            $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
-            $gitFolderPath = Get-Item $config.$($config.active).GitPath
-            $databaseName = $config.$($config.active).DatabaseName
-            $servername = $config.$($config.active).SQLServerName
-
-            [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
-            if ([long]$list.Count -gt 0) {
+                if ($config.$($config.active).Authentication -like "UserPassword" -and (-not $nav6)) {
+                    $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+                }
                 for ($i = 0; $i -lt $list.Count; $i++) {
                     $item = $list[$i]
-                    $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
-                    if (-not(Test-Path $path)) {
-                        $list.RemoveAt($i) > $null                            
-                        $i--
+                    $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                     
+                    
+                    if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+                        Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
+                        $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
                     }
-                }
 
-                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
-                if ($decision -eq "y") {
-                    for ($i = 0; $i -lt $list.Count; $i++) {
-                        $item = $list[$i]
-                        $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                        
-
-                        if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
-                            New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
-                        }
-                        $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
-
-                        if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
-                            Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
-                            $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
-                        }
-                        
+                    if ($nav6) {
+                        Import-Module (Join-Path -Path ((Get-Item $PSScriptRoot).Parent.FullName) -ChildPath "lib/COMNavConnector.dll")
                         if ((Set-NavisionObjectText -DatabaseName $databaseName -FilePath $path) -eq 0) {
                             Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported $type $id" -ForegroundColor Green
                         }
@@ -137,13 +140,29 @@ function Import-FromGitToNAV {
                             $i--
                         }
                     }
-                }
-                else {
-                    Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
-                    $config.$($config.active).CompileObjects = $false
+                    else {                      
+                        if ($null -eq $credential) {
+                            Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=yes, logfile=$log, importaction=overwrite" -Wait > $null
+                        }
+                        else {
+                            $username = $credential.UserName
+                            $password = $credential.GetNetworkCredential().Password        
+                            Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=no, username=$username, password=$password, logfile=$log, importaction=overwrite" -Wait > $null
+                        }
+
+                        if (Test-Path $log) {
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import ${item}:" -ForegroundColor Red
+                            Write-Host (Get-Content($log)) -ForegroundColor White
+                            $list.RemoveAt($i) > $null                            
+                            $i--
+                        }
+                        else {
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported ${item}" -ForegroundColor Green
+                        }
+                    }                    
                 }
 
-                if ($config.$($config.active).CompileObjects) {
+                if ($config.$($config.active).CompileObjects -and $nav6) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($list.Count) objects" -ForegroundColor Cyan
                     $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $list
                     $regex = [Regex]::new("([^\\]*).*\s([0-9]*).txt")
@@ -163,82 +182,18 @@ function Import-FromGitToNAV {
                         Write-Host "$(Get-Date -Format "HH:mm:ss") | Successfully compiled $Type $Id." -ForegroundColor Green
                     }
                 }
-            }
-            else {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Custom Filter could not be read correctly."
-            }
-
-            
-
-        }
-        else {
-            if ($config.$($config.active).Authentication -like "UserPassword") {
-                $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
-            }
-
-            $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
-            $gitFolderPath = Get-Item $config.$($config.active).GitPath
-            $databaseName = $config.$($config.active).DatabaseName
-            $servername = $config.$($config.active).SQLServerName
-            
-            [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
-            if ([long]$list.Count -gt 0) {
-                for ($i = 0; $i -lt $list.Count; $i++) {
-                    $item = $list[$i]
-                    $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item
-                    if (-not(Test-Path $path)) {
-                        $list.RemoveAt($i) > $null                            
-                        $i--
-                    }
-                }
-
-                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
-                if ($decision -eq "y") {
-                    for ($i = 0; $i -lt $list.Count; $i++) {
-                        $item = $list[$i]
-                        $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                        
-
-                        if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
-                            New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
-                        }
-                        $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
-
-                        if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
-                            Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
-                            $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
-                        }
-                        
-                        if ($null -eq $credential) {
-                            Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=yes, logfile=$log, importaction=overwrite" -Wait > $null
-                        }
-                        else {
-                            $username = $credential.UserName
-                            $password = $credential.GetNetworkCredential().Password        
-                            Start-Process -FilePath $finsqlPath -ArgumentList "command=ImportObjects, file=$path, servername=$servername, database=$databaseName, ntauthentication=no, username=$username, password=$password, logfile=$log, importaction=overwrite" -Wait > $null
-                        }
-                        if (Test-Path $log) {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import ${item}:" -ForegroundColor Red
-                            Write-Host (Get-Content($log)) -ForegroundColor White
-                            $list.RemoveAt($i) > $null                            
-                            $i--
-                        }
-                        else {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported ${item}" -ForegroundColor Green
-                        }
-                    }
-                }
-                else {
-                    Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
-                    $config.$($config.active).CompileObjects = $false
-                }
-
-                if ($config.$($config.active).CompileObjects){
+                elseif ($config.$($config.active).CompileObjects -and (-not $nav6)) {
                     Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $list  -nav6 $false -credential $credential -config $config
                 }
             }
             else {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Custom Filter could not be read correctly."
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | The action was aborted" -ForegroundColor Red
+                $config.$($config.active).CompileObjects = $false
             }
+            
+        }
+        else {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | Custom Filter could not be read correctly."
         }
     }
     else {        
@@ -304,9 +259,10 @@ function Import-FromGitToNAV {
                     break
                 }
             }
-            if ($config.$($config.active).CompileObjects -and -not $nav6){
+            if ($config.$($config.active).CompileObjects -and -not $nav6) {
                 Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $selectedObjectsList  -nav6 $nav6 -credential $Credential -config $config
-            } elseif (($config.$($config.active).CompileObjects -and $nav6)) {
+            }
+            elseif (($config.$($config.active).CompileObjects -and $nav6)) {
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($selectedObjectsList.Count) objects" -ForegroundColor Cyan
                 $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $selectedObjectsList            
                 if ($failedObjectsList.length -gt 0) {
