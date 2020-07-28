@@ -831,6 +831,52 @@ function Convert-CustomStringToNewNavFilters {
     return $dictionary
 }
 
+function Convert-CustomStringToFilenameList {
+    Param(
+        $customFilter
+    )
+    $dictionary = Convert-CustomStringToNewNavFilters -customFilter $customFilter
+
+    $pathlist = [System.Collections.ArrayList]@()
+    foreach($objectType in $dictionary.keys){
+        $filterString = $dictionary.Item($objectType)
+        [Regex]::Matches($filterString,"id=(.+?)(?>;|$)") | ForEach-Object {
+            if ($_.Success -and -not ($_.Groups[1].Value -eq "")) {
+                
+                $IdFilterArray = $_.Groups[1].Value.Split("|")
+                foreach ($Filter in $IdFilterArray) {
+                    if ($Filter.Contains("..")) {
+                        if ($Filter.StartsWith("..")) {
+                            [int]$max = $Filter.TrimStart("..")
+                            for ($i = 0;$i -le $max; $i++){
+                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            }
+                        }
+                        elseif ($Filter.EndsWith("..")) {
+                            [int] $min = $Filter.TrimEnd("..")
+                            for ($i = $min;$i -lt 2000000000; $i++){
+                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            }
+                        }
+                        else {
+                            [int] $min = $Filter.Substring(0, $Filter.IndexOf(".."))
+                            [int] $max = $Filter.Substring($Filter.IndexOf("..") + 2, $Filter.Length - $Filter.IndexOf("..") - 2)
+                            for ($i = $min;$i -le $max; $i++){
+                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            }
+                        }
+                    }
+                    else {
+                        $pathlist.Add("$objectType\$objectType " + $Filter.PadLeft(10,"0") + ".txt")>null
+                    }
+                }
+
+            }
+        }
+    }
+    return $pathlist
+}
+
 $CallConverter = {
     param (
         $type,
