@@ -68,7 +68,11 @@ function Import-FromGitToNAV {
     $finsqlPath = Join-Path -Path $config.$($config.active).RTCpath -ChildPath "finsql.exe"
     [int]$finsqlversion = Get-ChildItem $finsqlPath | ForEach-Object { $_.VersionInfo.ProductVersion } | ForEach-Object { $_.SubString(0, $_.IndexOf(".")) }
 
-    
+    $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
+    $gitFolderPath = Get-Item $config.$($config.active).GitPath
+    $databaseName = $config.$($config.active).DatabaseName
+    $servername = $config.$($config.active).SQLServerName
+
     if (-not $customFilter -eq "") {
         if ($finsqlversion -lt 7) {
             if ([Environment]::Is64BitProcess) {
@@ -93,11 +97,6 @@ function Import-FromGitToNAV {
         $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
         . $CultureConverter
 
-        $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
-        $gitFolderPath = Get-Item $config.$($config.active).GitPath
-        $databaseName = $config.$($config.active).DatabaseName
-        $servername = $config.$($config.active).SQLServerName
-
         [System.Collections.Generic.List[String]]$list = Convert-CustomStringToFilenameList -customFilter $customFilter
 
         if ([long]$list.Count -gt 0) {
@@ -114,8 +113,8 @@ function Import-FromGitToNAV {
             Format-List -InputObject $list
             $decision = Read-Host "Enter (y) to import the shown files or any other key to cancel this operation"
             if ($decision -eq "y") {
-                if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
-                    New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
+                if (-not (Test-Path -Path $databaseFolderPath)) {
+                    New-Item -ItemType Directory -Path $databaseFolderPath >null
                 }
                 $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
 
@@ -129,8 +128,11 @@ function Import-FromGitToNAV {
                     $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                     
                     
                     if (Is-LanguageDifferent -valueCulture $RepoCulture ) {
+                        if(-not (Test-Path -Path (Split-Path (Join-Path -Path $databaseFolderPath -ChildPath $item) -Parent))){
+                            New-Item -ItemType Directory -Path (Split-Path (Join-Path -Path $databaseFolderPath -ChildPath $item) -Parent) >null
+                        }                        
                         Convert-FileCulture -objectPath $path -repoCulture $RepoCulture -config $config
-                        $path = Join-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) -ChildPath $item
+                        $path = Join-Path -Path $databaseFolderPath -ChildPath $item
                     }
 
                     if ($nav6) {
@@ -231,11 +233,7 @@ function Import-FromGitToNAV {
         }
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Export finished" -ForegroundColor Cyan
 
-        $databaseFolderPath = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
-        $gitFolderPath = Get-Item $config.$($config.active).GitPath
         $list = Compare-Folders -databaseFolder $databaseFolderPath -gitFolder $gitFolderPath -nav6 $nav6
-        $databaseName = $config.$($config.active).DatabaseName
-        $servername = $config.$($config.active).SQLServerName
 
         if ([long]$list.Count -gt 0) {            
             while ($true) {
@@ -293,9 +291,9 @@ function Import-FromGitToNAV {
         }
     }
 
-    if (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active)) {
+    if (Test-Path -Path $databaseFolderPath) {
         Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $config.$($config.active).TempFolder) -ForegroundColor Cyan
-        Remove-Item -Recurse -Force -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active)
+        Remove-Item -Recurse -Force -Path $databaseFolderPath
     }
     
     
