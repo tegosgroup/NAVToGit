@@ -74,7 +74,7 @@ function Import-FromGitToNAV {
             if ([Environment]::Is64BitProcess) {
                 Write-Warning "Old NAV Version: Switching to 32-bit PowerShell."
                 $modulepath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "NAVToGit.psm1"
-                [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV -customFilter """ + $customFilter + """"
+                [String]$Startx86 = "Import-Module '" + $modulepath + "' -DisableNameChecking; Import-FromGitToNAV -customFilter '$customFilter'"
                 &"$env:WINDIR\syswow64\windowspowershell\v1.0\powershell.exe" -NoProfile -command $Startx86
                 break
             }
@@ -109,8 +109,10 @@ function Import-FromGitToNAV {
                     $i--
                 }
             }
-
-            $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter: `n $list `n Enter (y) to import the shown files or any other key to cancel this operation"
+            
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter:"
+            Format-List -InputObject $list
+            $decision = Read-Host "Enter (y) to import the shown files or any other key to cancel this operation"
             if ($decision -eq "y") {
                 if (-not (Test-Path -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active))) {
                     New-Item -ItemType Directory -Path (Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active) >null
@@ -120,6 +122,8 @@ function Import-FromGitToNAV {
                 if ($config.$($config.active).Authentication -like "UserPassword" -and (-not $nav6)) {
                     $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
                 }
+                $listCount = $list.Count
+                $counter = 1
                 for ($i = 0; $i -lt $list.Count; $i++) {
                     $item = $list[$i]
                     $path = Join-Path -Path $config.$($config.active).GitPath -ChildPath $item                     
@@ -132,10 +136,10 @@ function Import-FromGitToNAV {
                     if ($nav6) {
                         Import-Module (Join-Path -Path ((Get-Item $PSScriptRoot).Parent.FullName) -ChildPath "lib/COMNavConnector.dll")
                         if ((Set-NavisionObjectText -DatabaseName $databaseName -FilePath $path) -eq 0) {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported $type $id" -ForegroundColor Green
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($counter)/$($listCount)] Imported $item" -ForegroundColor Green
                         }
                         else {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import $type ${id}." -ForegroundColor Red
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($counter)/$($listCount)] Error while trying to Import $item." -ForegroundColor Red
                             $list.RemoveAt($i) > $null
                             $i--
                         }
@@ -151,18 +155,19 @@ function Import-FromGitToNAV {
                         }
 
                         if (Test-Path $log) {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Error while trying to Import ${item}:" -ForegroundColor Red
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($counter)/$($listCount)] Error while trying to Import ${item}:" -ForegroundColor Red
                             Write-Host (Get-Content($log)) -ForegroundColor White
                             $list.RemoveAt($i) > $null                            
                             $i--
                         }
                         else {
-                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($i+1)/$($list.Count)] Imported ${item}" -ForegroundColor Green
+                            Write-Host "$(Get-Date -Format "HH:mm:ss") | [$($counter)/$($listCount)] Imported ${item}" -ForegroundColor Green
                         }
-                    }                    
+                    }
+                    $counter++                    
                 }
 
-                if ($config.$($config.active).CompileObjects -and $nav6) {
+                if ($config.$($config.active).CompileObjects -and $nav6 -and $list.Count -ne 0) {
                     Write-Host "$(Get-Date -Format "HH:mm:ss") | Start compiling $($list.Count) objects" -ForegroundColor Cyan
                     $failedObjectsList = Set-Nav6ObjectsCompiled -DatabaseName $databaseName -SelectedObjectsList $list
                     $regex = [Regex]::new("([^\\]*).*\s([0-9]*).txt")
@@ -182,7 +187,7 @@ function Import-FromGitToNAV {
                         Write-Host "$(Get-Date -Format "HH:mm:ss") | Successfully compiled $Type $Id." -ForegroundColor Green
                     }
                 }
-                elseif ($config.$($config.active).CompileObjects -and (-not $nav6)) {
+                elseif ($config.$($config.active).CompileObjects -and (-not $nav6)-and $list.Count -ne 0) {
                     Set-ObjectsCompiled -databaseName $databaseName -servername $servername -finsqlPath $finsqlPath -selectedObjectsList $list  -nav6 $false -credential $credential -config $config
                 }
             }

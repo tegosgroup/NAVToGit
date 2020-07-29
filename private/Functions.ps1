@@ -847,22 +847,37 @@ function Convert-CustomStringToFilenameList {
                 foreach ($Filter in $IdFilterArray) {
                     if ($Filter.Contains("..")) {
                         if ($Filter.StartsWith("..")) {
-                            [int]$max = $Filter.TrimStart("..")
-                            for ($i = 0;$i -le $max; $i++){
-                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            try {
+                                [int]$max = $Filter.TrimStart("..")
+                                for ($i = 0;$i -le $max; $i++){
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                }
                             }
+                            catch {
+                                Write-Host "Given Id-Range is not valid: $Filter" -ForegroundColor Red
+                            }                
                         }
                         elseif ($Filter.EndsWith("..")) {
-                            [int] $min = $Filter.TrimEnd("..")
-                            for ($i = $min;$i -lt 2000000000; $i++){
-                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            try {
+                                [int] $min = $Filter.TrimEnd("..")
+                                for ($i = $min;$i -lt 2000000000; $i++){
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                }
                             }
+                            catch {
+                                Write-Host "Given Id-Range is not valid: $Filter" -ForegroundColor Red
+                            }                          
                         }
                         else {
-                            [int] $min = $Filter.Substring(0, $Filter.IndexOf(".."))
-                            [int] $max = $Filter.Substring($Filter.IndexOf("..") + 2, $Filter.Length - $Filter.IndexOf("..") - 2)
-                            for ($i = $min;$i -le $max; $i++){
-                                $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                            try {
+                                [int] $min = $Filter.Substring(0, $Filter.IndexOf(".."))
+                                [int] $max = $Filter.Substring($Filter.IndexOf("..") + 2, $Filter.Length - $Filter.IndexOf("..") - 2)              
+                                for ($i = $min;$i -le $max; $i++){
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                }
+                            }
+                            catch {
+                                Write-Host "Given Id-Range is not valid: $Filter" -ForegroundColor Red
                             }
                         }
                     }
