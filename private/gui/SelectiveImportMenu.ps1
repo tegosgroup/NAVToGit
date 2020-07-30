@@ -215,7 +215,7 @@ function Open-SelectiveImportMenu {
     $NoteGroupBox.location = New-Object System.Drawing.Point(16, 366)
 
     $NoteLabel = New-Object system.Windows.Forms.Label
-    $NoteLabel.Text = "Please enter the filter just as you would in Dynamics NAV. Different to selective Export only filtering on id is possible. Empty filters will be ignored and no object of this type will be exported." + [System.Environment]::NewLine + "Example: id=1337..1360"
+    $NoteLabel.Text = "Please enter the filter just as you would in Dynamics NAV. Different to selective Export only filtering on id is possible. Empty filters will be ignored and no object of this type will be imported." + [System.Environment]::NewLine + "Example: id=1337..1360"
     $NoteLabel.AutoSize = $false
     $NoteLabel.width = 288
     $NoteLabel.height = 80
