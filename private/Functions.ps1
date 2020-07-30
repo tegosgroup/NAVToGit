@@ -840,7 +840,7 @@ function Convert-CustomStringToFilenameList {
     $pathlist = [System.Collections.ArrayList]@()
     foreach($objectType in $dictionary.keys){
         $filterString = $dictionary.Item($objectType)
-        [Regex]::Matches($filterString,"id=(.+?)(?>;|$)") | ForEach-Object {
+        [Regex]::Matches($filterString,"id=(.+?)(?>;|$)",[Text.RegularExpressions.RegexOptions]::IgnoreCase) | ForEach-Object {
             if ($_.Success -and -not ($_.Groups[1].Value -eq "")) {
                 
                 $IdFilterArray = $_.Groups[1].Value.Split("|")
