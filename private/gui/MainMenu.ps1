@@ -13,7 +13,7 @@ function Open-MainMenu {
     $currentSettingsItems = @()
 
     $NavToGit = New-Object system.Windows.Forms.Form
-    $NavToGit.ClientSize = '810,585'
+    $NavToGit.ClientSize = '810,650'
     $NavToGit.text = "NAVToGit GUI"
     $NavToGit.TopMost = $false
     $NavToGit.DataBindings.DefaultDataSourceUpdateMode = 0
@@ -55,13 +55,22 @@ function Open-MainMenu {
     $SelectExportButton.Add_MouseClick( { Open-SelectiveExportMessageBox })
 
     $FobForDeliveryButton = New-Object system.Windows.Forms.Button
-    $FobForDeliveryButton.BackColor = "#FF87CEFA"
+    $FobForDeliveryButton.BackColor = "#FF7FFFD4"
     $FobForDeliveryButton.text = "Get &Fobs For Delivery"
     $FobForDeliveryButton.width = 370
     $FobForDeliveryButton.height = 60
-    $FobForDeliveryButton.location = New-Object System.Drawing.Point(20, 505)
+    $FobForDeliveryButton.location = New-Object System.Drawing.Point(220, 575)
     $FobForDeliveryButton.Font = 'Segoe UI,12, style=Bold'
     $FobForDeliveryButton.Add_MouseClick( {  Open-GetFobMessageBox })
+
+    $SelectiveImportButton = New-Object system.Windows.Forms.Button
+    $SelectiveImportButton.BackColor = "#FF87CEFA"
+    $SelectiveImportButton.text = "Selecti&ve Import... (Git >> Database)"
+    $SelectiveImportButton.width = 370
+    $SelectiveImportButton.height = 60
+    $SelectiveImportButton.location = New-Object System.Drawing.Point(20, 505)
+    $SelectiveImportButton.Font = 'Segoe UI,12, style=Bold'
+    $SelectiveImportButton.Add_MouseClick( { Open-SelectiveImportMessageBox })
 
     $CurrentConfigurationGroupBox = New-Object system.Windows.Forms.Groupbox
     $CurrentConfigurationGroupBox.height = 400
@@ -281,6 +290,7 @@ function Open-MainMenu {
     $ToolTips.SetToolTip($ImportButton, "Import objects from Git repository into the NAV database")
     $ToolTips.SetToolTip($ExportButton, "Export objects from NAV database into the Git repository")
     $ToolTips.SetToolTip($SelectExportButton, "Filter the objects you want to export into the Git repository")
+    $ToolTips.SetToolTip($SelectiveImportButton, "Filter the objects you want to import into the database")
     $ToolTips.SetToolTip($FobForDeliveryButton, "Export the differences between your current Git repository and the database")
 
     $NavToGit_KeyDown = [System.Windows.Forms.KeyEventHandler] {
@@ -329,16 +339,19 @@ function Open-MainMenu {
                 'l' {
                     Open-SelectiveExportMessageBox
                 }
+                'v' {
+                    Open-SelectiveImportMessageBox
+                }
                 Default {}
             }
         }
     }
 
-    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectExportButton, $FobForDeliveryButton)
+    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectiveImportButton, $SelectExportButton, $FobForDeliveryButton)
     $NavToGit.add_KeyDown($NavToGit_KeyDown)
     $CurrentConfigurationGroupBox.controls.AddRange($currentSettingsItems)
     $CurrentConfigurationGroupBox.controls.AddRange(@($currentConfigComboBox, $RTCPathLabel, $SQLServerNameLabel, $DatabaseNameLabel, $TempfolderLabel, $GitPathLabel, $AuthenticationLabel, $FobExportLabel, $CompileLabel, $EditButton, $DeleteButton, $newButton))
-    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $FobForDeliveryButton, $CurrentConfigurationGroupBox))
+    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $SelectiveImportButton, $FobForDeliveryButton, $CurrentConfigurationGroupBox))
     
     $VersionTableLayoutPanel.Controls.AddRange(@($VersionLabel))
     $NavToGit.controls.AddRange(@($VersionTableLayoutPanel))
@@ -460,7 +473,7 @@ function Set-EditingMode {
         if ($_.GetType() -eq [System.Windows.Forms.TextBox]) {
             $_.ReadOnly = -Not $global:editing
         }
-        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton) -or ($_ -eq $FobForDeliveryButton)) {
+        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton) -or ($_ -eq $SelectiveImportButton) -or ($_ -eq $FobForDeliveryButton)) {
             $_.Enabled = -not $global:editing
         }
         else {
@@ -581,6 +594,7 @@ function Invoke-ButtonEditClick {
         $ImportButton.Enabled = $true
         $ExportButton.Enabled = $true
         $SelectExportButton.Enabled = $true
+        $SelectiveImportButton.Enabled = $true
         $FobForDeliveryButton.Enabled = $true
         Set-EditingMode -components $currentSettingsItems
         return
@@ -615,6 +629,7 @@ function Invoke-ButtonNewClick {
         $ImportButton.Enabled = $false
         $ExportButton.Enabled = $false
         $SelectExportButton.Enabled = $false
+        $SelectiveImportButton.Enabled = $false
         $FobForDeliveryButton.Enabled = $false
         $EditButton.Text = "&Save"
         $DeleteButton.Text = "&Cancel"
@@ -673,6 +688,29 @@ function Open-SelectiveExportMessageBox {
     }
 }
 
+function Open-SelectiveImportMessageBox {
+    $SelectiveImportMenu = Join-Path -Path (Split-Path (Split-Path -Parent ($PSScriptRoot)) -Parent) -ChildPath ".\private\gui\SelectiveImportMenu.ps1"
+    . $SelectiveImportMenu
+    
+    $NAVVersion = Get-ChildItem (Join-Path -Path $config.$($config.active).RTCPath -ChildPath "finsql.exe") | ForEach-Object { $_.VersionInfo.FileVersion } | ForEach-Object { $_.SubString(0, $_.IndexOf(".")) }
+    if ($NAVVersion -eq 6) {
+        if ($dark) {
+            Open-SelectiveImportMenu -dark -nav6
+        }
+        else {
+            Open-SelectiveImportMenu -nav6
+        }
+    }
+    else {    
+        if ($dark) {
+            Open-SelectiveImportMenu -dark
+        }
+        else {
+            Open-SelectiveImportMenu
+        }
+    }
+}
+
 function Open-ImportMessageBox {
     $Result = [System.Windows.Forms.MessageBox]::Show("Are you sure to import objects with shown configuration?", "Import", 4, [System.Windows.Forms.MessageBoxIcon]::Question)
     If ($Result -eq "Yes") {
@@ -721,6 +759,7 @@ function Open-DeleteMessageBox {
         $ImportButton.Enabled = $true
         $ExportButton.Enabled = $true
         $SelectExportButton.Enabled = $true
+        $SelectiveImportButton.Enabled = $true
         $FobForDeliveryButton.Enabled = $true
         $Global:newMode = $false
         Set-ActiveItem -config $config -indexName $config.active -NavToGit $NavToGit
