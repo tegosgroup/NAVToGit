@@ -81,7 +81,7 @@ Setup your first config with the GUI. These settings will configure the NAV Data
 ```powershell
 Show-NavToGitGui
 ```
-![image](https://user-images.githubusercontent.com/58514804/74413498-cf892800-4e3f-11ea-8af9-dade45505e2d.png)
+![image](https://user-images.githubusercontent.com/60692534/88889445-6c018400-d240-11ea-8100-d7040cdc6e75.png)
 
 Config Parameter |  Description
 ------------ | -------------
@@ -100,12 +100,13 @@ The Module supports the following commands:
 #### Show-NAVToGitGui *-dark*
 The GUI will be opened. With parameter `dark` the Gui will be opened in dark mode.
 
-#### Import-FromGitToNav *-useConfig <ConfigName> -compile*
+#### Import-FromGitToNav *-customFilter <Filter> -useConfig <ConfigName> -compile*
 Imports selected different objects from git repository to the NAV database.
+The parameter `customFilter` hands over the filter of the objects which you want to import. Example: `Import-FromGitToNav -customFilter “codeunit=ID=2..10;table=ID=10..20”`
 The parameter `useConfig` specifies the configuration which will be used. With given switch `compile` the imported objects will be compiled, if possible.
 
 #### Export-FromNAVToGit *-customFilter <Filter> -useConfig <ConfigName>*
-Without entering any parameter all objects of the active configuration will be exported. 
+Without entering any parameter all objects of the active configuration will be exported.
 The parameter `customFilter` hands over the filter of the objects which you want to export. Example: `Export-FromNAVToGit -customFilter “codeunit=ID=2..10;modified=No;table=ID=10..20”`
 The parameter `useConfig` specifies the configuration which will be used.
 
