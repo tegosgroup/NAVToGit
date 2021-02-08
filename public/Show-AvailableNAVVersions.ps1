@@ -1,16 +1,22 @@
 function Show-AvailableNAVVersions {
     $AllVersions = @{ }
     $AllVersionsSorted = [ordered]@{ }
-    $UserPaths = @('C:\Program Files (x86)\Microsoft Dynamics NAV', `
-            'C:\Program Files (x86)\Microsoft Dynamics 365 Business Central', `
-            'C:\ProgramData\NavContainerHelper', `
-            'D:\Program Files (x86)\Microsoft Dynamics NAV', `
-            'D:\Program Files (x86)\Microsoft Dynamics 365 Business Central', `
-            'D:\ProgramData\NavContainerHelper', `
-            'E:\Program Files (x86)\Microsoft Dynamics NAV', `
-            'E:\Program Files (x86)\Microsoft Dynamics 365 Business Central', `
-            'E:\ProgramData\NavContainerHelper'
-            )
+    $Drives = Get-PSDrive -PSProvider 'FileSystem'
+    $NAVFolders = @('Program Files (x86)\Microsoft Dynamics NAV',
+        'Program Files (x86)\Microsoft Dynamics 365 Business Central',
+        'ProgramData\NavContainerHelper',
+        'ProgramData\BcContainerHelper'
+    )
+    $UserPaths = @()
+    $Drives | ForEach-Object { 
+        $currDrive = $_.Root
+        $NAVFolders | ForEach-Object { 
+            $currPath = Join-Path $currDrive $_ 
+            if (Test-Path $currPath) {
+                $UserPaths += @($currPath)
+            }
+        } 
+    }
 
     $NAVPaths = Get-ChildItem -Filter "finsql.exe" -Recurse -ErrorAction SilentlyContinue -Path $UserPaths
 
