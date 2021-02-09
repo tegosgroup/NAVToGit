@@ -117,7 +117,7 @@ function Move-FilteredObjects {
         $Destination
     )
     Get-ChildItem -Path $Source | ForEach-Object {
-        Copy-Item $_.FullName -Destination $Destination -Exclude @("navcommandresult.txt","*.zup") -Recurse -Force
+        Copy-Item $_.FullName -Destination $Destination -Exclude @("navcommandresult.txt", "*.zup") -Recurse -Force
     }
     Write-Host("$(Get-Date -Format "HH:mm:ss") | Removing tempfolder " + $Source) -ForegroundColor Cyan
     Remove-Item -Recurse -Path $Source
@@ -428,7 +428,7 @@ function Compare-Dirs {
     catch {
         if ($null -eq $folderDatabase) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | No objects of type '$type' from database exported. Possible error? No $type objects have been compared!" -ForegroundColor Red
-            if (Test-Path (Join-Path -Path $databaseFolder -ChildPath "..\$type-Log.log")){
+            if (Test-Path (Join-Path -Path $databaseFolder -ChildPath "..\$type-Log.log")) {
                 $logFile = Join-Path -Path $databaseFolder -ChildPath "..\$type-Log.log"
                 Write-Host "$(Get-Date -Format "HH:mm:ss") | Error Message: "(Get-Content $logFile) -ForegroundColor Red
             }
@@ -624,9 +624,24 @@ function Get-FobAndDeleteTxt {
             $filter = $filter + "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_) + "`n"
         }
         else {
-            $filter = "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_)
-            Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob for object type $($_)"
-            Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$_.fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+            if ($filterHashMap.Get_Item($_).Length -ge 512) {
+                $objectType = $_
+                $objectArray = $filterHashMap.Get_Item($_).Split("|")
+                $objectArrayInChunks = for ($i = 0; $i -lt $objectArray.Length; $i += 70) { , ($objectArray[$i .. ($i + 69)]) }
+
+                $count = 1
+                $objectArrayInChunks | ForEach-Object {
+                    Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob $($count)/$($objectArrayInChunks.Length) for object type $($objectType)"
+                    $filter = "type=" + $objectType + ";id=" + [system.String]::Join("|", $_)
+                    Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$objectType-$count.of.$($objectArrayInChunks.Length).fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+                    $count++
+                }
+            }
+            else {
+                $filter = "type=" + $_ + ";id=" + $filterHashMap.Get_Item($_)
+                Write-Host "$(Get-Date -Format "HH:mm:ss") | Writing fob for object type $($_)"
+                Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$FobFolderPath\$($config.active)-Delta-$gitCommitId-$_.fob, servername=$servername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+            }        
         }
     }
     if ($nav6) {
@@ -838,9 +853,9 @@ function Convert-CustomStringToFilenameList {
     $dictionary = Convert-CustomStringToNewNavFilters -customFilter $customFilter
 
     $pathlist = [System.Collections.ArrayList]@()
-    foreach($objectType in $dictionary.keys){
+    foreach ($objectType in $dictionary.keys) {
         $filterString = $dictionary.Item($objectType)
-        [Regex]::Matches($filterString,"id=(.+?)(?>;|$)",[Text.RegularExpressions.RegexOptions]::IgnoreCase) | ForEach-Object {
+        [Regex]::Matches($filterString, "id=(.+?)(?>;|$)", [Text.RegularExpressions.RegexOptions]::IgnoreCase) | ForEach-Object {
             if ($_.Success -and -not ($_.Groups[1].Value -eq "")) {
                 
                 $IdFilterArray = $_.Groups[1].Value.Split("|")
@@ -849,8 +864,8 @@ function Convert-CustomStringToFilenameList {
                         if ($Filter.StartsWith("..")) {
                             try {
                                 [int]$max = $Filter.TrimStart("..")
-                                for ($i = 0;$i -le $max; $i++){
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                for ($i = 0; $i -le $max; $i++) {
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
                                 }
                             }
                             catch {
@@ -860,8 +875,8 @@ function Convert-CustomStringToFilenameList {
                         elseif ($Filter.EndsWith("..")) {
                             try {
                                 [int] $min = $Filter.TrimEnd("..")
-                                for ($i = $min;$i -lt 2000000000; $i++){
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                for ($i = $min; $i -lt 2000000000; $i++) {
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
                                 }
                             }
                             catch {
@@ -872,8 +887,8 @@ function Convert-CustomStringToFilenameList {
                             try {
                                 [int] $min = $Filter.Substring(0, $Filter.IndexOf(".."))
                                 [int] $max = $Filter.Substring($Filter.IndexOf("..") + 2, $Filter.Length - $Filter.IndexOf("..") - 2)              
-                                for ($i = $min;$i -le $max; $i++){
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10,"0") + ".txt")>null
+                                for ($i = $min; $i -le $max; $i++) {
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
                                 }
                             }
                             catch {
@@ -882,7 +897,7 @@ function Convert-CustomStringToFilenameList {
                         }
                     }
                     else {
-                        $pathlist.Add("$objectType\$objectType " + $Filter.PadLeft(10,"0") + ".txt")>null
+                        $pathlist.Add("$objectType\$objectType " + $Filter.PadLeft(10, "0") + ".txt")>null
                     }
                 }
 
