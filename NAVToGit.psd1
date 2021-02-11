@@ -69,7 +69,7 @@ Copyright = '(c) 2020 tegos GmbH. Alle Rechte vorbehalten.'
 # NestedModules = @()
 
 # Aus diesem Modul zu exportierende Funktionen. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und löschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Funktionen vorhanden sind.
-FunctionsToExport = @('Export-FromNAVToGit','Import-FromGitToNAV','Set-ActiveNAVToGitConfiguration','Show-AvailableNAVVersions','Show-NAVToGitGui','Update-NAVToGit')
+FunctionsToExport = @('Export-FromNAVToGit','Get-FobForDelivery','Import-FromGitToNAV','Set-ActiveNAVToGitConfiguration','Show-AvailableNAVVersions','Show-NAVToGitGui','Update-NAVToGit')
 
 # Aus diesem Modul zu exportierende Cmdlets. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und löschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Cmdlets vorhanden sind.
 CmdletsToExport = @()
@@ -78,7 +78,7 @@ CmdletsToExport = @()
 VariablesToExport = '*'
 
 # Aus diesem Modul zu exportierende Aliase. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und löschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Aliase vorhanden sind.
-AliasesToExport = @('Export-FromNAVToGit','Import-FromGitToNAV','Set-ActiveNAVToGitConfiguration','Show-AvailableNAVVersions','Show-NAVToGitGui','Update-NAVToGit')
+AliasesToExport = @('Export-FromNAVToGit','Get-FobForDelivery','Import-FromGitToNAV','Set-ActiveNAVToGitConfiguration','Show-AvailableNAVVersions','Show-NAVToGitGui','Update-NAVToGit')
 
 # Aus diesem Modul zu exportierende DSC-Ressourcen
 # DscResourcesToExport = @()
