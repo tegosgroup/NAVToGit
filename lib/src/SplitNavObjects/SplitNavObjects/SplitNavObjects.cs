@@ -59,7 +59,7 @@ namespace SplitNavObjects
                     string pattern = @"^OBJECT " + actualObjName + " ";
 
                     Encoding enc = Encoding.GetEncoding(850);
-                    string readStr = File.ReadAllText(file, enc);                    
+                    string readStr = File.ReadAllText(file, enc);
                     string[] objects = Regex.Split(readStr, pattern, RegexOptions.Multiline | RegexOptions.Compiled);
                     long id;
                     string filepath;
