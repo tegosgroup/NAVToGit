@@ -1,4 +1,4 @@
-﻿function Start-Export-Nav6 {
+function Start-Export-Nav6 {
     Param(
         [switch]$skipRobocopy,
         $config,
@@ -350,7 +350,7 @@ $ExportFob = {
         New-Item -Path $TempRepo -Name "fob" -ItemType Directory -Force
     }
     $exportFile = Join-Path(Get-Item $TempRepo).FullName "fob\$ThirdParty.fob"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName.zup"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$ThirdParty-$(Get-Date -Format HHmmss).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=ID=$idfilter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
