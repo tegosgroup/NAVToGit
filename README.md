@@ -11,6 +11,7 @@ Start **Powershell ISE** and copy this script, which downloads the current Insta
 # NAVToGit Install Script
 
 $uri = "https://raw.githubusercontent.com/tegosGroup/NAVToGit/master/.install/InstallScript.ps1"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $installScript = [Scriptblock]::Create((Invoke-WebRequest -Uri $uri).Content)
 Invoke-Command -ScriptBlock $installScript
 ```
