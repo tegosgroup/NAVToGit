@@ -865,7 +865,7 @@ function Convert-CustomStringToFilenameList {
                             try {
                                 [int]$max = $Filter.TrimStart("..")
                                 for ($i = 0; $i -le $max; $i++) {
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt") > $null
                                 }
                             }
                             catch {
@@ -876,7 +876,7 @@ function Convert-CustomStringToFilenameList {
                             try {
                                 [int] $min = $Filter.TrimEnd("..")
                                 for ($i = $min; $i -lt 2000000000; $i++) {
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt") > $null
                                 }
                             }
                             catch {
@@ -888,7 +888,7 @@ function Convert-CustomStringToFilenameList {
                                 [int] $min = $Filter.Substring(0, $Filter.IndexOf(".."))
                                 [int] $max = $Filter.Substring($Filter.IndexOf("..") + 2, $Filter.Length - $Filter.IndexOf("..") - 2)              
                                 for ($i = $min; $i -le $max; $i++) {
-                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt")>null
+                                    $pathlist.Add("$objectType\$objectType " + ([String]$i).PadLeft(10, "0") + ".txt") > $null
                                 }
                             }
                             catch {
@@ -897,7 +897,7 @@ function Convert-CustomStringToFilenameList {
                         }
                     }
                     else {
-                        $pathlist.Add("$objectType\$objectType " + $Filter.PadLeft(10, "0") + ".txt")>null
+                        $pathlist.Add("$objectType\$objectType " + $Filter.PadLeft(10, "0") + ".txt") > $null
                     }
                 }
 
