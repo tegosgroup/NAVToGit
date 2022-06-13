@@ -1,7 +1,8 @@
 function Export-FromNAVToGit {
     Param(
         $useConfig,
-        $customFilter
+        $customFilter,
+        [pscredential]$Credential
     )
     try {
         $config = Get-Content -Raw -Path (Join-Path -Path $Env:APPDATA -ChildPath "\NavToGit\config.json") -ErrorAction Stop | ConvertFrom-Json
@@ -77,7 +78,10 @@ function Export-FromNAVToGit {
     }
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
-            $Credential = $host.ui.PromptForCredential("Need credentials for NAV Instance.", "Please enter username and password.", "", "")
+            if($Credential -eq $null)
+            {
+                $Credential = $host.ui.PromptForCredential("Need credentials for NAV Instance.", "Please enter username and password.", "", "")
+            }
             if (-not ($null -eq $Credential)) {
                 Start-Export -config $config -credential $Credential -thirdpartyfobs $thirdpartyfobs -customFilter $customFilter
             } else {

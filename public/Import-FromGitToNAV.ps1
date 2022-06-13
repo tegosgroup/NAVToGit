@@ -3,6 +3,7 @@ function Import-FromGitToNAV {
         $useConfig,
         $customFilter,
         [switch]$compile,
+        [PSCredential]$credential,
         [parameter(DontShow)]
         [switch]$dark
     )
@@ -119,7 +120,9 @@ function Import-FromGitToNAV {
                 $log = Join-Path -Path $config.$($config.active).TempFolder -ChildPath "$($config.$($config.active).DatabaseName) - import.log"
 
                 if ($config.$($config.active).Authentication -like "UserPassword" -and (-not $nav6)) {
-                    $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+                    if($credential -eq $null){
+                        $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+                    }
                 }
                 $listCount = $list.Count
                 $counter = 1
