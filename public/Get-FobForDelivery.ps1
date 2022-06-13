@@ -2,6 +2,7 @@ function Get-FobForDelivery {
     param (
         $useConfig,
         $OutputPath,
+        [pscredential]$Credential,
         [parameter(DontShow)]
         [switch]$dark
     )
@@ -74,7 +75,9 @@ function Get-FobForDelivery {
     }
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
-            $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+            if($Credential -eq $null){
+                $Credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
+            }
             Start-Export -skipRobocopy -config $config -thirdpartyfobs $thirdpartyfobs -credential $Credential
         }
         else {
