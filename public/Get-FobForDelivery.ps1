@@ -93,7 +93,11 @@ function Get-FobForDelivery {
 
     if ([long]$list.Count -gt 0) {
         while ($true) {
-            $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects in database compared to git commit '$gitCommitId'. Enter (a) to write all changed objects to fob, (s) to select the objects you want to write or (c) to cancel this operation"
+            if($host.Name -match "ConsoleHost"){
+                $decision = "a"
+            } else{
+                $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects in database compared to git commit '$gitCommitId'. Enter (a) to write all changed objects to fob, (s) to select the objects you want to write or (c) to cancel this operation"
+            }
             if ($decision -eq "a") {
                 Get-FobAndDeleteTxt -config $config -FobFolderPath $OutputPath -list $list -nav6 $nav6 -credential $Credential
                 break
