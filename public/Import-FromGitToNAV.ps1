@@ -4,6 +4,7 @@ function Import-FromGitToNAV {
         $customFilter,
         [switch]$compile,
         [PSCredential]$credential,
+        [switch]$noInput,
         [parameter(DontShow)]
         [switch]$dark
     )
@@ -112,7 +113,7 @@ function Import-FromGitToNAV {
             
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter:"
             Format-List -InputObject $list
-            if($host.Name -match "ConsoleHost"){
+            if($noInput.IsPresent){
                 $decision = "y"
             } else{
                 $decision = Read-Host "Enter (y) to import the shown files or any other key to cancel this operation"
@@ -246,7 +247,7 @@ function Import-FromGitToNAV {
 
         if ([long]$list.Count -gt 0) {            
             while ($true) {
-                if($host.Name -match "ConsoleHost"){
+                if($noInput.IsPresent){
                     $decision = "a"
                 } else{
                     $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects. Enter (a) to apply all changed objects, (s) to select the objects you want to import or (c) to cancel this operation"

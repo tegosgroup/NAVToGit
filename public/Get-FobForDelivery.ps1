@@ -3,6 +3,7 @@ function Get-FobForDelivery {
         $useConfig,
         $OutputPath,
         [pscredential]$Credential,
+        [switch]$noInput,
         [parameter(DontShow)]
         [switch]$dark
     )
@@ -93,7 +94,7 @@ function Get-FobForDelivery {
 
     if ([long]$list.Count -gt 0) {
         while ($true) {
-            if($host.Name -match "ConsoleHost"){
+            if($noInput.IsPresent){
                 $decision = "a"
             } else{
                 $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects in database compared to git commit '$gitCommitId'. Enter (a) to write all changed objects to fob, (s) to select the objects you want to write or (c) to cancel this operation"
