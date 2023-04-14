@@ -228,7 +228,6 @@ function Start-Export {
 
     foreach ($type in $objectTypes) {
         Set-Location (Join-Path(Get-Item $TempRepo).FullName "$type\")
-        #Get-Content *.txt | Set-Content "Export.txt"
         $ExportCache = Get-Content *.txt
         Remove-item *.txt
         Set-Content -Path "Export.txt" $ExportCache
@@ -338,8 +337,6 @@ $Export = {
         [pscredential]$credential,
         $number
     )
-
-    Write-Host $type $filter $number
     
     $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-$number-Log.log"
     if (-Not (Test-Path (Join-Path(Get-Item $TempRepo).FullName "$type"))) {
@@ -347,8 +344,6 @@ $Export = {
     }
     $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\$number.txt"
     $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfff).zup"
-
-    Write-Host $exportFile $logFile
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=TYPE=$type;ID=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
