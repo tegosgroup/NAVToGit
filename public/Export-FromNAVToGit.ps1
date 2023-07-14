@@ -78,8 +78,8 @@ function Export-FromNAVToGit {
     }
     else {
         if ($config.$($config.active).Authentication -like "UserPassword") {
-            if($Credential -eq $null)
-            {
+            if($Credential -eq $null){
+                Write-Host "Following credentials were found: $($credential.UserName) / $($credential.GetNetworkCredential().Password). Please enter valid credentials.."
                 $Credential = $host.ui.PromptForCredential("Need credentials for NAV Instance.", "Please enter username and password.", "", "")
             }
             if (-not ($null -eq $Credential)) {
