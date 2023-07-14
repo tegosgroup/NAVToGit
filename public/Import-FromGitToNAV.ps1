@@ -114,6 +114,7 @@ function Import-FromGitToNAV {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) files out of given custom filter:"
             Format-List -InputObject $list
             if($noInput.IsPresent){
+                Write-Host "Running NavToGit without user interfaction. Use (y) to import all files.."
                 $decision = "y"
             } else{
                 $decision = Read-Host "Enter (y) to import the shown files or any other key to cancel this operation"
@@ -126,6 +127,7 @@ function Import-FromGitToNAV {
 
                 if ($config.$($config.active).Authentication -like "UserPassword" -and (-not $nav6)) {
                     if($credential -eq $null){
+                        Write-Host "Following credentials were found: $($credential.UserName) / $($credential.GetNetworkCredential().Password). Please enter valid credentials.."
                         $credential = $host.ui.PromptForCredential("Need credentials", "Please enter your user name and password.", "", "")
                     }
                 }
@@ -248,6 +250,7 @@ function Import-FromGitToNAV {
         if ([long]$list.Count -gt 0) {            
             while ($true) {
                 if($noInput.IsPresent){
+                    Write-Host "Running NavToGit without user interfaction. Use (a) to apply all changes.."
                     $decision = "a"
                 } else{
                     $decision = Read-Host "$(Get-Date -Format "HH:mm:ss") | Found $($list.Count) changed objects. Enter (a) to apply all changed objects, (s) to select the objects you want to import or (c) to cancel this operation"
