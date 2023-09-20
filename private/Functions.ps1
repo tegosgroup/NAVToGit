@@ -189,12 +189,30 @@ function Start-Export {
             $value = $objectWithFilters[$key]
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting ${key}s with filter '$value'"
 
-            $number = 0
-            $Array=$value.Split("|")
+            $Array = $filter.Split("|")
+
+            $filters = @()
+            $counter = 0
+            $SB = New-Object -TypeName System.Text.StringBuilder
+
             foreach ($item in $Array) {
-                Start-Job $Export -Name $type -ArgumentList $key, $item, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
-                Start-Sleep -Milliseconds 500
+                if (($counter -lt 10) -and !($item -eq $Array[$Array.length - 1])) {
+                    [void]$SB.Append($item + "|")
+                    $counter++
+                }
+                else {
+                    [void]$SB.Append($item)
+                    $filters += $SB.ToString()
+                    $counter = 0
+                    $SB.Clear() > $null
+                }
+            }
+
+            $number = 0
+            foreach ($filterString in $filters) {
+                Start-Job $Export -Name $type -ArgumentList $type, $filterString, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
                 $number++
+                Start-Sleep -Milliseconds 200
             }
         }
     }
@@ -203,12 +221,30 @@ function Start-Export {
         foreach ($type in $objectTypes) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
 
-            $number = 0
-            $Array=$filter.Split("|")
+            $Array = $filter.Split("|")
+
+            $filters = @()
+            $counter = 0
+            $SB = New-Object -TypeName System.Text.StringBuilder
+
             foreach ($item in $Array) {
-                Start-Job $Export -Name $type -ArgumentList $type, $item, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
-                Start-Sleep -Milliseconds 500
+                if (($counter -lt 10) -and !($item -eq $Array[$Array.length - 1])) {
+                    [void]$SB.Append($item + "|")
+                    $counter++
+                }
+                else {
+                    [void]$SB.Append($item)
+                    $filters += $SB.ToString()
+                    $counter = 0
+                    $SB.Clear() > $null
+                }
+            }
+
+            $number = 0
+            foreach ($filterString in $filters) {
+                Start-Job $Export -Name $type -ArgumentList $type, $filterString, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
                 $number++
+                Start-Sleep -Milliseconds 200
             }
         }
         if ($config.$($config.active).EnableThirdPartyFobExport) {
@@ -227,10 +263,11 @@ function Start-Export {
     Remove-Job *
 
     foreach ($type in $objectTypes) {
-        Set-Location (Join-Path(Get-Item $TempRepo).FullName "$type\")
-        $ExportCache = Get-Content *.txt
-        Remove-item *.txt
-        Set-Content -Path "Export.txt" $ExportCache
+        if (Test-Path -Path $($TempRepo + "\" + $type.ToLower() + "\*")) {
+            $ExportCache = Get-Content -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
+            Remove-Item -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
+            Set-Content -Path $($TempRepo + "\" + $type.ToLower() + "\Export.txt") $ExportCache
+        }
     }
 
     [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
