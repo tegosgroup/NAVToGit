@@ -269,7 +269,7 @@ function Start-Export {
             Set-Content -Path $($TempRepo + "\" + $type.ToLower() + "\Export.txt") $ExportCache
         }
     }
-
+    
     [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
     if (-not $logFile.contains("successfully")) {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:`n"(Get-Content $logFile.Substring($logFile.LastIndexOf(":") - 1)) -ForegroundColor Red
@@ -371,19 +371,18 @@ $Export = {
         $finsqlPath,
         $sqlServername,
         $databaseName,
-        [pscredential]$credential,
-        $number
+        [pscredential]$credential
     )
     
-    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-$number-Log.log"
+    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-Log.log"
     if (-Not (Test-Path (Join-Path(Get-Item $TempRepo).FullName "$type"))) {
         New-Item -Path $TempRepo -Name $type.ToLower() -ItemType Directory -Force
     }
-    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\$number.txt"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfff).zup"
+    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\Export.txt"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmss).zup"
 
     if ($null -eq $credential) {
-        Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=TYPE=$type;ID=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
+        Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
     }
     else {
         $username = $credential.UserName
@@ -408,7 +407,7 @@ $ExportFob = {
         New-Item -Path $TempRepo -Name "fob" -ItemType Directory -Force
     }
     $exportFile = Join-Path(Get-Item $TempRepo).FullName "fob\$ThirdParty.fob"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$ThirdParty-$(Get-Date -Format HHmmssffff).zup"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$ThirdParty-$(Get-Date -Format HHmmss).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=ID=$idfilter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait

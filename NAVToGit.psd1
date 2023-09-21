@@ -12,7 +12,7 @@
 RootModule = 'NAVToGit.psm1'
 
 # Die Versionsnummer dieses Moduls
-ModuleVersion = '0.3.7'
+ModuleVersion = '0.3.9'
 
 # Unterstützte PSEditions
 CompatiblePSEditions = @()
@@ -27,7 +27,7 @@ Author = 'tegos GmbH'
 CompanyName = 'tegos GmbH'
 
 # Urheberrechtserklärung für dieses Modul
-Copyright = '(c) 2020 tegos GmbH. Alle Rechte vorbehalten.'
+Copyright = '(c) 2023 tegos GmbH. Alle Rechte vorbehalten.'
 
 # Beschreibung der von diesem Modul bereitgestellten Funktionen
 # Description = ''

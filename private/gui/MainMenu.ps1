@@ -26,7 +26,6 @@ function Open-MainMenu {
         $NavToGit.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
     }
     $NavToGit.KeyPreview = $true
-    $NavToGit.Icon = ".\Logo.ico"
 
     $ImportButton = New-Object system.Windows.Forms.Button
     $ImportButton.BackColor = "#FF1E90FF"
