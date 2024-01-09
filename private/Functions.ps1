@@ -219,13 +219,41 @@ function Start-Export {
         break
     }
 
+    $hasErrors = $false;
+
     $ErrorLogs = Get-ChildItem -Filter "*.log" -ErrorAction SilentlyContinue -Path $TempRepo
     if (-not ($null -eq $ErrorLogs)) {
-        Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:" -ForegroundColor Red
+        
+        $cachedConsoleOutput = "$(Get-Date -Format "HH:mm:ss") | Issues while trying to Export:";
+
         $ErrorLogs | ForEach-Object {
-            Write-Host $(Get-Content $_.FullName) -ForegroundColor Red
+            
+            $cachedConsoleOutput += "`nLogName: $($_.Name)";
+
+
+            $logContent = Get-Content $_.FullName;
+            
+            $cachedConsoleOutput += "`n$($logContent)";
+
+
+            if (-not $logContent.Contains("Your program license")) {
+                $hasErrors = $true;
+            }
+            else {
+                if ($logContent -is [System.Array]) {
+                    $hasErrors = $true
+                }
+            }
         }
-        break
+
+        if ($hasErrors) {
+            Write-Host $cachedConsoleOutput -ForegroundColor Red
+            break
+        }
+        else
+        {
+            Write-Host $cachedConsoleOutput -ForegroundColor Yellow
+        }
     }
 
     Write-Host "$(Get-Date -Format "HH:mm:ss") | Splitting files" -ForegroundColor Cyan
