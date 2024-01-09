@@ -215,8 +215,11 @@ function Start-Export {
 
     [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
     if (-not $logFile.contains("successfully")) {
-        Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:`n"(Get-Content $logFile.Substring($logFile.LastIndexOf(":") - 1)) -ForegroundColor Red
-        break
+        if (-not $logFile.contains("completed")) {
+            Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:`n"(Get-Content $logFile.Substring($logFile.LastIndexOf(":") - 1)) -ForegroundColor Red
+            Write-Host "The used filter was: ""$($filter)"""
+            break
+        }
     }
 
     $ErrorLogs = Get-ChildItem -Filter "*.log" -ErrorAction SilentlyContinue -Path $TempRepo
