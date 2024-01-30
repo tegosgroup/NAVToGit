@@ -10,6 +10,9 @@ Start **Powershell ISE** and copy this script, which downloads the current Insta
 ```powershell
 # NAVToGit Install Script
 
+# Set Execution Policy to Unrestricted for the current user so the module can load at PowerShell startup
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
+
 $uri = "https://raw.githubusercontent.com/tegosGroup/NAVToGit/master/.install/InstallScript.ps1"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $installScript = [Scriptblock]::Create((Invoke-WebRequest -Uri $uri).Content)
