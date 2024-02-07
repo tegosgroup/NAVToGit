@@ -189,7 +189,7 @@ function Start-Export {
             $value = $objectWithFilters[$key]
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting ${key}s with filter '$value'"
 
-            $Array = $filter.Split("|")
+            $Array = $value.Split("|")
 
             $filters = @()
             $counter = 0
@@ -210,7 +210,7 @@ function Start-Export {
 
             $number = 0
             foreach ($filterString in $filters) {
-                Start-Job $Export -Name $type -ArgumentList $type, $filterString, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
+                Start-Job $Export -Name $type -ArgumentList $key, "Type=$key;$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
                 $number++
                 Start-Sleep -Milliseconds 200
             }
@@ -242,7 +242,7 @@ function Start-Export {
 
             $number = 0
             foreach ($filterString in $filters) {
-                Start-Job $Export -Name $type -ArgumentList $type, $filterString, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
+                Start-Job $Export -Name $type -ArgumentList $type, "Type=$type;ID=$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
                 $number++
                 Start-Sleep -Milliseconds 200
             }
@@ -269,7 +269,7 @@ function Start-Export {
             Set-Content -Path $($TempRepo + "\" + $type.ToLower() + "\Export.txt") $ExportCache
         }
     }
-    
+
     [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
     if (-not $logFile.contains("successfully")) {
         Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:`n"(Get-Content $logFile.Substring($logFile.LastIndexOf(":") - 1)) -ForegroundColor Red
@@ -371,15 +371,16 @@ $Export = {
         $finsqlPath,
         $sqlServername,
         $databaseName,
-        [pscredential]$credential
+        [pscredential]$credential,
+        $number
     )
     
-    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-Log.log"
+    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-$number-Log.log"
     if (-Not (Test-Path (Join-Path(Get-Item $TempRepo).FullName "$type"))) {
         New-Item -Path $TempRepo -Name $type.ToLower() -ItemType Directory -Force
     }
-    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\Export.txt"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmss).zup"
+    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\$number.txt"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfff).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
