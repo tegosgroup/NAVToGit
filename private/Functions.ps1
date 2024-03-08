@@ -380,7 +380,7 @@ $Export = {
         New-Item -Path $TempRepo -Name $type.ToLower() -ItemType Directory -Force
     }
     $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\$number.txt"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfff).zup"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfffff).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
