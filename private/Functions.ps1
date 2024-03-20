@@ -188,15 +188,64 @@ function Start-Export {
         foreach ($key in $objectWithFilters.Keys) {
             $value = $objectWithFilters[$key]
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting ${key}s with filter '$value'"
-            $filter = "Type=$key;$value"
-            Start-Job $Export -Name $type -ArgumentList $key, $filter, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential > $null
+
+            $splittedFilters = $value.Split("|")
+
+            $filters = @()
+            $counter = 0
+            $SB = New-Object -TypeName System.Text.StringBuilder
+
+            foreach ($item in $splittedFilters) {
+                if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
+                    [void]$SB.Append($item + "|")
+                    $counter++
+                }
+                else {
+                    [void]$SB.Append($item)
+                    $filters += $SB.ToString()
+                    $counter = 0
+                    $SB.Clear() > $null
+                }
+            }
+
+            $number = 0
+            foreach ($filterString in $filters) {
+                Start-Job $Export -Name $type -ArgumentList $key, "Type=$key;$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
+                $number++
+                Start-Sleep -Milliseconds 200
+            }
         }
     }
     else {
         $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
         foreach ($type in $objectTypes) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
-            Start-Job $Export -Name $type -ArgumentList $type, "Type=$type;ID=$filter", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential > $null
+
+            $splittedFilters = $filter.Split("|")
+
+            $filters = @()
+            $counter = 0
+            $SB = New-Object -TypeName System.Text.StringBuilder
+
+            foreach ($item in $splittedFilters) {
+                if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
+                    [void]$SB.Append($item + "|")
+                    $counter++
+                }
+                else {
+                    [void]$SB.Append($item)
+                    $filters += $SB.ToString()
+                    $counter = 0
+                    $SB.Clear() > $null
+                }
+            }
+
+            $number = 0
+            foreach ($filterString in $filters) {
+                Start-Job $Export -Name $type -ArgumentList $type, "Type=$type;ID=$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
+                $number++
+                Start-Sleep -Milliseconds 200
+            }
         }
         if ($config.$($config.active).EnableThirdPartyFobExport) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting Third-Party fobs"
@@ -212,6 +261,14 @@ function Start-Export {
     }
 
     Remove-Job *
+
+    foreach ($type in $objectTypes) {
+        if (Test-Path -Path $($TempRepo + "\" + $type.ToLower() + "\*")) {
+            $ExportCache = Get-Content -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
+            Remove-Item -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
+            Set-Content -Path $($TempRepo + "\" + $type.ToLower() + "\Export.txt") $ExportCache
+        }
+    }
 
     [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
     if (-not $logFile.contains("successfully")) {
@@ -314,15 +371,16 @@ $Export = {
         $finsqlPath,
         $sqlServername,
         $databaseName,
-        [pscredential]$credential
+        [pscredential]$credential,
+        $number
     )
     
-    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-Log.log"
+    $logFile = Join-Path(Get-Item $TempRepo).FullName "$type-$number-Log.log"
     if (-Not (Test-Path (Join-Path(Get-Item $TempRepo).FullName "$type"))) {
         New-Item -Path $TempRepo -Name $type.ToLower() -ItemType Directory -Force
     }
-    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\Export.txt"
-    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmss).zup"
+    $exportFile = Join-Path(Get-Item $TempRepo).FullName "$type\$number.txt"
+    $finzup = Join-Path(Get-Item $TempRepo).FullName "$databaseName-$type-$(Get-Date -Format HHmmssfffff).zup"
 
     if ($null -eq $credential) {
         Start-Process -FilePath $finsqlPath -ArgumentList "command=exportobjects, file=$exportFile, servername=$sqlServername, filter=$filter, database=$databaseName, ntauthentication=yes, id=$finzup, logfile=$logFile" -Wait
