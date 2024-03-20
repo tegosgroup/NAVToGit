@@ -189,14 +189,14 @@ function Start-Export {
             $value = $objectWithFilters[$key]
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting ${key}s with filter '$value'"
 
-            $Array = $value.Split("|")
+            $splittedFilters = $value.Split("|")
 
             $filters = @()
             $counter = 0
             $SB = New-Object -TypeName System.Text.StringBuilder
 
-            foreach ($item in $Array) {
-                if (($counter -lt 10) -and !($item -eq $Array[$Array.length - 1])) {
+            foreach ($item in $splittedFilters) {
+                if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
                     [void]$SB.Append($item + "|")
                     $counter++
                 }
@@ -221,14 +221,14 @@ function Start-Export {
         foreach ($type in $objectTypes) {
             Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
 
-            $Array = $filter.Split("|")
+            $splittedFilters = $filter.Split("|")
 
             $filters = @()
             $counter = 0
             $SB = New-Object -TypeName System.Text.StringBuilder
 
-            foreach ($item in $Array) {
-                if (($counter -lt 10) -and !($item -eq $Array[$Array.length - 1])) {
+            foreach ($item in $splittedFilters) {
+                if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
                     [void]$SB.Append($item + "|")
                     $counter++
                 }
