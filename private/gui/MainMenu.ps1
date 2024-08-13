@@ -73,15 +73,6 @@ function Open-MainMenu {
     $SelectiveImportButton.Font = 'Segoe UI,12, style=Bold'
     $SelectiveImportButton.Add_MouseClick( { Open-SelectiveImportMessageBox })
 
-    $ThirdPartyJsonButton = New-Object system.Windows.Forms.Button
-    $ThirdPartyJsonButton.BackColor = "#FF87CEFA"
-    $ThirdPartyJsonButton.text = "Generate ThirdPartyIdAreas.json"
-    $ThirdPartyJsonButton.width = 370
-    $ThirdPartyJsonButton.height = 60
-    $ThirdPartyJsonButton.location = New-Object System.Drawing.Point(420, 575)
-    $ThirdPartyJsonButton.Font = 'Segoe UI,12, style=Bold'
-    $ThirdPartyJsonButton.Add_MouseClick( { Open-GenerateThirdPartyMessageBox })
-
     $CurrentConfigurationGroupBox = New-Object system.Windows.Forms.Groupbox
     $CurrentConfigurationGroupBox.height = 400
     $CurrentConfigurationGroupBox.width = 770
@@ -357,11 +348,11 @@ function Open-MainMenu {
         }
     }
 
-    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectiveImportButton, $SelectExportButton, $FobForDeliveryButton, $ThirdPartyJsonButton)
+    $currentSettingsItems = @($RTCPathComboBox, $SQLServerNameTextBox, $DatabaseNameTextBox, $TempFolderTextBox, $TempFolderSelectionButton, $GitPathTextBox, $GitFolderSelectionButton, $AuthenticationComboBox, $FobExportCheckBox, $CompileCheckBox, $currentConfigComboBox, $ImportButton, $ExportButton, $SelectiveImportButton, $SelectExportButton, $FobForDeliveryButton)
     $NavToGit.add_KeyDown($NavToGit_KeyDown)
     $CurrentConfigurationGroupBox.controls.AddRange($currentSettingsItems)
     $CurrentConfigurationGroupBox.controls.AddRange(@($currentConfigComboBox, $RTCPathLabel, $SQLServerNameLabel, $DatabaseNameLabel, $TempfolderLabel, $GitPathLabel, $AuthenticationLabel, $FobExportLabel, $CompileLabel, $EditButton, $DeleteButton, $newButton))
-    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $SelectiveImportButton, $FobForDeliveryButton, $ThirdPartyJsonButton, $CurrentConfigurationGroupBox))
+    $NavToGit.controls.AddRange(@($ImportButton, $ExportButton, $SelectExportButton, $SelectiveImportButton, $FobForDeliveryButton, $CurrentConfigurationGroupBox))
     
     $VersionTableLayoutPanel.Controls.AddRange(@($VersionLabel))
     $NavToGit.controls.AddRange(@($VersionTableLayoutPanel))
@@ -483,7 +474,7 @@ function Set-EditingMode {
         if ($_.GetType() -eq [System.Windows.Forms.TextBox]) {
             $_.ReadOnly = -Not $global:editing
         }
-        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton) -or ($_ -eq $SelectiveImportButton) -or ($_ -eq $FobForDeliveryButton) -or ($_ -eq $ThirdPartyJsonButton)) {
+        elseif (($_ -eq $currentConfigComboBox) -or ($_ -eq $ImportButton) -or ($_ -eq $ExportButton) -or ($_ -eq $SelectExportButton) -or ($_ -eq $SelectiveImportButton) -or ($_ -eq $FobForDeliveryButton)) {
             $_.Enabled = -not $global:editing
         }
         else {
@@ -606,7 +597,6 @@ function Invoke-ButtonEditClick {
         $SelectExportButton.Enabled = $true
         $SelectiveImportButton.Enabled = $true
         $FobForDeliveryButton.Enabled = $true
-        $ThirdPartyJsonButton.Enabled = $true
         Set-EditingMode -components $currentSettingsItems
         return
     }
@@ -642,7 +632,6 @@ function Invoke-ButtonNewClick {
         $SelectExportButton.Enabled = $false
         $SelectiveImportButton.Enabled = $false
         $FobForDeliveryButton.Enabled = $false
-        $ThirdPartyJsonButton.Enabled = $false
         $EditButton.Text = "&Save"
         $DeleteButton.Text = "&Cancel"
 
@@ -726,16 +715,7 @@ function Open-SelectiveImportMessageBox {
 function Open-ImportMessageBox {
     $Result = [System.Windows.Forms.MessageBox]::Show("Are you sure to import objects with shown configuration?", "Import", 4, [System.Windows.Forms.MessageBoxIcon]::Question)
     If ($Result -eq "Yes") {
-        [String]$argumentlist = '-noExit -command "$ImportFromGitToNAV = Join-Path -Path (Split-Path (Split-Path -Parent (""' + $PSScriptRoot + '""")) -Parent) -ChildPath "public\Import-FromGitToNAV.ps1";. $ImportFromGitToNAV; Import-FromGitToNAV' + $(if ($Global:dark) { ' -dark"' }else { '"' } )
-        Start-Process powershell.exe -ArgumentList $argumentlist
-    }
-}
-
-function Open-GenerateThirdPartyMessageBox {
-    $Result = [System.Windows.Forms.MessageBox]::Show("Are you sure to generate the ThirdPartyAreas.json with shown configuration?", "Generate", 4, [System.Windows.Forms.MessageBoxIcon]::Question)
-    If ($Result -eq "Yes") {
-        Write-Output "Hello There"
-        [String]$argumentlist = '-noExit -command "$GenerateThirdPartyJson = Join-Path -Path (Split-Path (Split-Path -Parent (""' + $PSScriptRoot + '""")) -Parent) -ChildPath "public\Get-ThirdPartyJson.ps1";. $GenerateThirdPartyJson; Get-ThirdPartyJson' + $(if ($Global:dark) { ' -dark"' } else { '"' } )
+        [String]$argumentlist = '-noExit -command "$ImportFromGitToNAV = Join-Path -Path (Split-Path (Split-Path -Parent (""' + $PSScriptRoot + '""")) -Parent) -ChildPath "public\Import-FromGitToNAV.ps1";. $ImportFromGitToNAV; Import-FromGitToNAV' + $(if($Global:dark) {' -dark"'}else{'"'} )
         Start-Process powershell.exe -ArgumentList $argumentlist
     }
 }
@@ -782,7 +762,6 @@ function Open-DeleteMessageBox {
         $SelectExportButton.Enabled = $true
         $SelectiveImportButton.Enabled = $true
         $FobForDeliveryButton.Enabled = $true
-        $ThirdPartyJsonButton.Enabled = $true
         $Global:newMode = $false
         Set-ActiveItem -config $config -indexName $config.active -NavToGit $NavToGit
         $currentConfigComboBox.SelectedIndex = $currentConfigComboBox.Items.IndexOf($config.active)

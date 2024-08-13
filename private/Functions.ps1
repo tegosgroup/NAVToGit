@@ -151,7 +151,10 @@ function Start-Export {
         $thirdpartyfobs,
         [pscredential]$credential,
         [switch]$skipRobocopy
-    )eConverter
+    )
+
+    $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
+    . $CultureConverter
 
     $GitRepo = (Join-Path -Path (Get-Item $config.$($config.active).GitPath) -ChildPath "").trim("\")
     $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
@@ -307,7 +310,8 @@ function Start-Export {
             Write-Host $cachedConsoleOutput -ForegroundColor Red
             break
         }
-        else {
+        else
+        {
             Write-Host $cachedConsoleOutput -ForegroundColor Yellow
         }
     }
@@ -1046,7 +1050,7 @@ function Convert-FileCulture {
 }
 
 function Get-FolderPathDialog {
-    param (
+    param(
         [String]$Description
     )
     
@@ -1062,247 +1066,5 @@ function Get-FolderPathDialog {
     $FolderBrowser.ShowDialog() > $null
     $Path = $FolderBrowser.SelectedPath
     $FolderBrowser.Dispose()
-}
-
-function Get-ThirdPartyAreaJson {
-    Param(
-        $config,
-        $thirdpartyfobs,
-        [pscredential]$credential,
-        [switch]$skipRobocopy
-    )
-
-    $idstart = 1
-    $badIDs = @()
-
-    :loop while ($true) {
-        $customFilter = "codeunit=;menusuite=;page=;report=;table=id=$idstart..2000000000;xmlport=;query="
-        Write-Host $customFilter
-        Write-Host $badIDs
-
-        $CultureConverter = Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath "private\CultureConverter.ps1"
-        . $CultureConverter
-
-        $GitRepo = (Join-Path -Path (Get-Item $config.$($config.active).GitPath) -ChildPath "").trim("\")
-        $TempRepo = Join-Path -Path $config.$($config.active).TempFolder -ChildPath $config.active
-        $finsqlPath = Join-Path -Path $config.$($config.active).RTCpath -ChildPath "finsql.exe"
-        $sqlServername = $config.$($config.active).SQLServerName
-        $databaseName = $config.$($config.active).DatabaseName
-
-        if (Test-Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json")) {
-            $RepoConfig = Get-Content -Raw -Path (Join-Path -Path $config.$($config.active).GitPath -ChildPath "RepoConfig.json") -ErrorAction Stop | ConvertFrom-Json
-            $RepoCulture = [System.Globalization.CultureInfo]::new($RepoConfig.RepoCulture).LCID
-        }
-        else {
-            $SystemCulture = Get-Culture
-            $RepoCulture = $SystemCulture.LCID
-        }
-    
-        if (!(Test-Path $TempRepo)) {
-            Write-Host("$(Get-Date -Format "HH:mm:ss") | Creating tempfolder " + $TempRepo) -ForegroundColor Cyan
-            mkdir $TempRepo > $null
-        }
-        else {
-            Write-Host("$(Get-Date -Format "HH:mm:ss") | Cleaning tempfolder " + $TempRepo) -ForegroundColor Cyan
-            Remove-Item -Path (Join-Path -Path $TempRepo -ChildPath "*") -Recurse
-        }
-    
-        $filter = ""
-        $useCustomFilter = -Not ($null -eq $customFilter)
-        $objectTypes = @("Codeunit", "Page", "Table", "Report", "Query", "XMLport", "MenuSuite")
-        if ($useCustomFilter) {
-            $objectWithFilters = Convert-CustomStringToNewNavFilters -customFilter $customFilter
-            foreach ($key in $objectWithFilters.Keys) {
-                $value = $objectWithFilters[$key]
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting ${key}s with filter '$value'"
-
-                $splittedFilters = $value.Split("|")
-
-                $filters = @()
-                $counter = 0
-                $SB = New-Object -TypeName System.Text.StringBuilder
-
-                foreach ($item in $splittedFilters) {
-                    if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
-                        [void]$SB.Append($item + "|")
-                        $counter++
-                    }
-                    else {
-                        [void]$SB.Append($item)
-                        $filters += $SB.ToString()
-                        $counter = 0
-                        $SB.Clear() > $null
-                    }
-                }
-
-                $number = 0
-                foreach ($filterString in $filters) {
-                    Start-Job $Export -Name $type -ArgumentList $key, "Type=$key;$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
-                    $number++
-                    Start-Sleep -Milliseconds 200
-                }
-            }
-        }
-        else {
-            $filter = Get-NoThirdPartyFilter -thirdpartyfobs $thirdpartyfobs
-            foreach ($type in $objectTypes) {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting $($type)s"
-
-                $splittedFilters = $filter.Split("|")
-
-                $filters = @()
-                $counter = 0
-                $SB = New-Object -TypeName System.Text.StringBuilder
-
-                foreach ($item in $splittedFilters) {
-                    if (($counter -lt 10) -and !($item -eq $splittedFilters[$splittedFilters.length - 1])) {
-                        [void]$SB.Append($item + "|")
-                        $counter++
-                    }
-                    else {
-                        [void]$SB.Append($item)
-                        $filters += $SB.ToString()
-                        $counter = 0
-                        $SB.Clear() > $null
-                    }
-                }
-
-                $number = 0
-                foreach ($filterString in $filters) {
-                    Start-Job $Export -Name $type -ArgumentList $type, "Type=$type;ID=$filterString", $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential, $number > $null
-                    $number++
-                    Start-Sleep -Milliseconds 200
-                }
-            }
-            if ($config.$($config.active).EnableThirdPartyFobExport) {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Started exporting Third-Party fobs"
-                $ThirdPartyFilterList = Get-ThirdPartyFilterList -thirdpartyfobs $thirdpartyfobs
-                $ThirdPartyFilterList.Keys | ForEach-Object {
-                    $filter = $ThirdPartyFilterList.Get_Item($_)
-                    Start-Job $ExportFob -Name $_ -ArgumentList $_, $filter, $TempRepo, $finsqlPath, $sqlServername, $databaseName, $credential > $null
-                }
-            }
-        }
-        While (Get-Job -State "Running") {
-            Start-Sleep -seconds 2
-        }
-
-        Remove-Job *
-
-        foreach ($type in $objectTypes) {
-            if (Test-Path -Path $($TempRepo + "\" + $type.ToLower() + "\*")) {
-                $ExportCache = Get-Content -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
-                Remove-Item -Path $($TempRepo + "\" + $type.ToLower() + "\*") -Filter *.txt
-                Set-Content -Path $($TempRepo + "\" + $type.ToLower() + "\Export.txt") $ExportCache
-            }
-        }
-
-        [String]$logFile = Get-Content (Join-Path -Path $TempRepo -ChildPath "navcommandresult.txt")
-        if (-not $logFile.contains("successfully")) {
-            if (-not $logFile.contains("completed")) {
-                Write-Host "$(Get-Date -Format "HH:mm:ss") | Error while trying to Export:`n"(Get-Content $logFile.Substring($logFile.LastIndexOf(":") - 1)) -ForegroundColor Red
-                Write-Host "The used filter was: ""$($filter)"""
-                break
-            }
-        }
-
-        $hasErrors = $false;
-
-        $ErrorLogs = Get-ChildItem -Filter "*.log" -ErrorAction SilentlyContinue -Path $TempRepo
-        if (-not ($null -eq $ErrorLogs)) {
-        
-            $cachedConsoleOutput = "$(Get-Date -Format "HH:mm:ss") | Issues while trying to Export:";
-
-            $ErrorLogs | ForEach-Object {
-            
-                $cachedConsoleOutput += "`nLogName: $($_.Name)";
-
-
-                $logContent = Get-Content $_.FullName;
-            
-                $cachedConsoleOutput += "`n$($logContent)";
-
-                "`n$($logContent)" -match "'([^']*?)'" *>$null
-                $a = $matches[1]
-                Write-Host $a
-
-
-                $datarow = Invoke-Sqlcmd -ServerInstance $sqlServername -Database $databaseName -Query "Select * From Object where (Name = '$a' AND Type = 1)"
-
-                Write-Host $datarow.ID
-
-                $badIDs += $datarow.ID
-                $idstart = $datarow.ID + 1
-
-                Write-Host $objects
-
-                foreach ($a in $objects) {
-                    Write-Host $a
-                }
-
-                if (-not $logContent.Contains("Your program license")) {
-                    $hasErrors = $true;
-                }
-                else {
-                    if ($logContent -is [System.Array]) {
-                        $hasErrors = $true
-                    }
-                }
-            }
-
-            if ($hasErrors) {
-                Write-Host $cachedConsoleOutput -ForegroundColor Red
-                continue loop
-            }
-            else {
-                Write-Host $cachedConsoleOutput -ForegroundColor Yellow
-                break loop
-            }
-        }
-
-        break loop
-    }
-
-    $ranges = New-Object System.Collections.Generic.List[PSCustomObject]
-    $ranges.Add([PSCustomObject]@{"startID" = $badIDs[0]; "endID" = ""; })
-    $rangecounter = 0
-    $currentID = $badIDs[0]
-
-    for ($i = 0; $i -lt $badIDs.Count; $i++) {
-        if ($badIDs[$i] -eq ($currentID + 1) -or ($badIDs[$i] -eq $currentID)) {
-            $ranges[$rangecounter].endID = $badIDs[$i]
-            $currentID++
-        }
-        elseif ($badIDs[$i] -ne ($badIDs[$i] - 1) -or $badIDs[$i] -ne ($badIDs[$i] + 1)) {
-            $ranges.Add([PSCustomObject]@{"startID" = $badIDs[$i]; "endID" = $badIDs[$i]; })
-            $rangecounter++
-            $currentID = $badIDs[$i]
-        }
-        else {
-            $ranges.Add([PSCustomObject]@{"startID" = $badIDs[$i]; "endID" = ""; })
-            $rangecounter++
-            $currentID = $badIDs[$i]
-        }
-    }
-
-    foreach ($a in $ranges) {
-        Write-Host "Start ID =" $a.startID ": End ID =" $a.endID
-    }
-
-    $obj = @{
-        "RANGES" = @()
-    }
-
-
-    for ($i = 0; $i -lt ($ranges.Count); $i++) {
-        $obj2 = @{
-            "from:" = $ranges[$i].startID
-            "to:"   = $ranges[$i].endID
-        }
-
-        $obj.RANGES += , $obj2
-    }
-
-    $json = $obj | ConvertTo-Json
-    $json | Set-Content -Path "C:\Users\cpies\OneDrive - tegosgroup\Desktop\settings.json" -Force
+    return $Path
 }
