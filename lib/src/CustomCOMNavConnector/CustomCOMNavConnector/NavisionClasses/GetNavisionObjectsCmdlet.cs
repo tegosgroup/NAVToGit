@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Management.Automation;
 using System.IO;
+using System.Management.Automation;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CustomCOMNavConnector.NavisionClasses
@@ -9,6 +10,8 @@ namespace CustomCOMNavConnector.NavisionClasses
     [Cmdlet(VerbsCommon.Get, "NavisionObjects")]
     public class GetNavisionClients : PSCmdlet
     {
+        private const int NavisionEncoding = 850;
+
         [Parameter(
             Mandatory = true,
             ValueFromPipeline = true,
@@ -84,7 +87,7 @@ namespace CustomCOMNavConnector.NavisionClasses
                     }
                     string temp = navConnector.GetAllObjectText(NavObjectTypeClass.GetObjectTypeByString(ObjectType), GetObjectFilter());
                     path = Path.Combine(path, "Export.txt");
-                    File.WriteAllText(path, temp);
+                    File.WriteAllText(path, temp, Encoding.GetEncoding(NavisionEncoding));
                     return 1;
                 }
                 return -1;
