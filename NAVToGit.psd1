@@ -12,7 +12,7 @@
 RootModule = 'NAVToGit.psm1'
 
 # Die Versionsnummer dieses Moduls
-ModuleVersion = '0.5.2'
+ModuleVersion = '0.6.0'
 
 # Unterstützte PSEditions
 CompatiblePSEditions = @()
