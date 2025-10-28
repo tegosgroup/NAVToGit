@@ -50,14 +50,14 @@ function Open-ObjectList {
                     $_.Selected = $false
                 }
                 $Global:dataGridView.Rows[$rowIndex].Selected = $true
-                $menuItemCompare = New-Object System.Windows.Forms.MenuItem("Compare files")
+                $menuItemCompare = New-Object System.Windows.Forms.ToolStripMenuItem("Compare files")
                 $menuItemCompare.Add_Click( {
                         $file = $dataGridView.SelectedRows[0].Cells[$dataGridView.ColumnCount - 1].Value
                         Show-ChangesInApplication -gitPath $Global:Git -databasePath $Global:Temp -CompareToolPath $Global:CompareToolPath -CompareToolParam $Global:CompareToolParam -filename $file
                     })
 
-                $contextMenu = New-Object System.Windows.Forms.ContextMenu
-                $contextMenu.MenuItems.Add($menuItemCompare)
+                $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
+                $contextMenu.Items.Add($menuItemCompare)
                 $contextMenu.Show($dataGridView, (New-Object System.Drawing.Point($_.X, $_.Y)))
             }
         })
